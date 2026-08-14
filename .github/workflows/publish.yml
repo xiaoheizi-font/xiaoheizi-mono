@@ -1,0 +1,123 @@
+# 推送到 main：构建、发布 GitHub Pages、打 tag 并创建 Release。
+# 仓库 Settings → Pages → Source 选 GitHub Actions。
+
+name: 发布
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/cache@v4
+        with:
+          path: vendor
+          key: vendor-${{ hashFiles('scripts/fetch-vendor.py') }}
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 下载上游字体
+        run: python scripts/fetch-vendor.py
+
+      - name: 构建
+        run: python scripts/build.py
+
+      - uses: actions/configure-pages@v5
+
+      - name: 准备 Pages 站点
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp dist/preview.html _site/index.html
+          cp dist/preview.html _site/preview.html
+          cp dist/preview.ttf dist/preview-emoji.ttf dist/preview-emoji-ms.ttf _site/
+          cp dist/coverage.js dist/coverage-blocks.md _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fonts
+          path: |
+            dist/Xiaoheizi*.ttf
+            dist/*.txt
+            dist/coverage-*.json
+            dist/coverage-*.md
+          if-no-files-found: error
+
+  pages:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  release:
+    needs: build
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event.repository.fork == false &&
+      (github.event_name == 'workflow_dispatch' ||
+       !contains(github.event.head_commit.message, '[skip release]'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: fonts
+          path: dist
+
+      - name: 打 tag 并创建 GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="v0.1.0-preview.${GITHUB_RUN_NUMBER}"
+          git fetch --tags origin
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "tag 已存在：${TAG}"
+            exit 0
+          fi
+          git tag -a "$TAG" "$GITHUB_SHA" -m "小黑字等宽 ${TAG}"
+          git push origin "refs/tags/${TAG}"
+          shopt -s nullglob
+          files=(dist/Xiaoheizi*.ttf dist/*.txt dist/coverage-*.json dist/coverage-*.md)
+          NOTES="由 main 提交 \`${GITHUB_SHA:0:7}\` 自动构建。"$'\n\n'"- 小黑字等宽 \`Xiaoheizi Mono\`"$'\n'"- 小黑字表情 \`Xiaoheizi Emoji\`（Noto）"$'\n'"- 小黑字表情微软 \`Xiaoheizi Emoji MS\`（Fluent）"$'\n\n'"覆盖表见附件 \`coverage-blocks.md\`。预览页见 GitHub Pages。"
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "小黑字等宽 ${TAG}" \
+            --notes "$NOTES" \
+            "${files[@]}"

@@ -1,0 +1,8 @@
+vendor/
+__pycache__/
+*.pyc
+dist/*.ttf
+dist/*.otf
+dist/dump.txt
+dist/cell-check.txt
+dist/_debug*

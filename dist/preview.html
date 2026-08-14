@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>小黑字等宽 预览</title>
+  <style>
+    @font-face {
+      font-family: "Xiaoheizi Mono";
+      src: url("./preview.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "Xiaoheizi Emoji";
+      src: url("./preview-emoji.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "Xiaoheizi Emoji MS";
+      src: url("./preview-emoji-ms.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    body {
+      margin: 2rem;
+      background: #111;
+      color: #eee;
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji", sans-serif;
+    }
+    p { opacity: 0.85; max-width: 52rem; }
+    pre {
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji", monospace;
+      font-size: 18px;
+      line-height: 1.4;
+      white-space: pre;
+      background: #1c1c1c;
+      padding: 1rem 1.2rem;
+      border-radius: 8px;
+    }
+    pre.emoji-ms {
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS", monospace;
+    }
+    h1, h2 { font-weight: 400; }
+    h2 { margin: 1.6rem 0 0.6rem; font-size: 1.1rem; }
+    .meta { opacity: 0.65; margin-bottom: 0.8rem; }
+    table.coverage {
+      width: 100%;
+      max-width: 52rem;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+    }
+    table.coverage th,
+    table.coverage td {
+      padding: 0.4rem 0.75rem;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    table.coverage th {
+      color: #aaa;
+      font-weight: 400;
+      background: #1a1a1a;
+    }
+    table.coverage td.num { white-space: nowrap; }
+    table.coverage tbody tr {
+      background-image: linear-gradient(
+        to right,
+        rgba(90, 168, 255, 0.28) var(--pct, 0%),
+        transparent var(--pct, 0%)
+      );
+    }
+    #coverage-error { color: #f88; }
+  </style>
+</head>
+<body>
+  <h1>小黑字等宽</h1>
+  <p>标题与下面预览必须是同一套字。汉字应是思源/更纱黑体，西文是 JetBrains Mono。彩色 emoji 有两套配套字体，都按 1 em（两格）对齐：默认「小黑字表情」为 Noto；「小黑字表情微软」为 Fluent 画风。</p>
+  <pre>┌────────┬────────┐
+│ id     │ 值     │
+│ shell  │ 完成   │
+└────────┴────────┘
+
+┌────────┬────────┬────────┐
+│ ABC    │ 你好   │ 123    │
+│ l1I0O  │ ，。！ │ αβγ    │
+│ -> !=  │ 「」   │ абв    │
+│ ＡＢＣ │ 全角   │ １２   │
+│ 你好A1 │ ★蟹元★ │ 中A中  │
+└────────┴────────┴────────┘
+
+┌────────┬────────┐
+│ 한글   │ 韩文   │
+│ 안녕   │ 세계   │
+│ 龘靐   │ 生僻   │
+│ 爨鼾   │ 鱻㵘   │
+└────────┴────────┘
+
+┌────────┬────────┐
+│ ✅⚠★❤☀⚡ │ 符号   │
+│ ☀⚡✓✔→← │ 箭头   │
+│ 😀🦀🎉 │ 📁🚀🔥 │
+└────────┴────────┘
+
+╔════════╦════════╗
+║ OK     ║ 否     ║
+║ #inc   ║ コード ║
+╚════════╩════════╝</pre>
+
+  <h2>小黑字表情（Noto）</h2>
+  <pre class="emoji-noto">┌────────┬────────┐
+│ 😀🦀🎉 │ 📁🚀🔥 │
+│ Noto   │ 谷歌   │
+└────────┴────────┘</pre>
+  <h2>小黑字表情微软（Fluent）</h2>
+  <pre class="emoji-ms">┌────────┬────────┐
+│ 😀🦀🎉 │ 📁🚀🔥 │
+│ MS     │ 微软   │
+└────────┴────────┘</pre>
+
+  <div id="coverage">
+    <p id="coverage-error">正在读取 coverage.js。若一直停在这里，请先运行 <code>python scripts/build.py</code>，再用浏览器打开 <code>dist/preview.html</code>。</p>
+  </div>
+
+  <script src="./coverage.js"></script>
+  <script>
+    function esc(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderTable(title, headers, rows) {
+      const head = headers.map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("");
+      const body = rows.map(function (row) {
+        const pct = Number(row.percentValue) || 0;
+        return (
+          "<tr style=\"--pct:" + pct + "%\">" +
+          "<td>" + esc(row.name) + "</td>" +
+          "<td class=\"num\">" + esc(row.mapped + "/" + row.total) + "</td>" +
+          "<td class=\"num\">" + esc(row.percent) + "</td>" +
+          "<td>" + esc(row.note) + "</td>" +
+          "</tr>"
+        );
+      }).join("");
+      return (
+        "<h2>" + esc(title) + "</h2>" +
+        "<table class=\"coverage\"><thead><tr>" + head + "</tr></thead><tbody>" +
+        body + "</tbody></table>"
+      );
+    }
+
+    const root = document.getElementById("coverage");
+    const data = window.XIAOHEIZI_COVERAGE;
+    if (!data) {
+      document.getElementById("coverage-error").textContent =
+        "未找到 coverage.js。请运行 python scripts/build.py 后再打开 dist/preview.html。";
+    } else {
+      root.innerHTML =
+        "<p class=\"meta\">Unicode " + esc(data.unicodeVersion) + " · 行背景宽度等于覆盖率</p>" +
+        renderTable("总览", ["项目", "已覆盖 / 集合", "覆盖率", "说明"], data.overview) +
+        renderTable("CJK", ["集合", "已覆盖 / 集合", "覆盖率", "说明"], data.cjk) +
+        renderTable("Unicode 区段", ["区段", "已覆盖 / 集合", "覆盖率", "口径"], data.unicode);
+    }
+  </script>
+</body>
+</html>

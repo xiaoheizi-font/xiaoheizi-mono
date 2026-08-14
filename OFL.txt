@@ -1,0 +1,17 @@
+Copyright 2026 小黑字，with Reserved Font Name '小黑字' and 'Xiaoheizi'.
+
+Portions Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono).
+
+Portions Copyright 2022 Google LLC, Noto Emoji authors (https://github.com/googlefonts/noto-emoji), with Reserved Font Name 'Noto'.
+
+Fluent Emoji artwork Copyright Microsoft Corporation, MIT License (https://github.com/microsoft/fluentui-emoji).
+Fluent Color TTF compilation portions Copyright Tetsunori Nakayama, MIT License (https://github.com/tetunori/fluent-emoji-webfont).
+
+Portions Copyright (c) 2015-2025, Renzhi Li (aka. Belleve Invis).
+Portions Copyright (c) 2014-2021 Adobe Systems Incorporated, with Reserved Font Name 'Source'.
+Portions from Iosevka / Source Han Sans as included in Sarasa Gothic.
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+https://openfontlicense.org
+
+JetBrains Mono 原文许可证见构建产物 dist/JetBrainsMono-OFL.txt。
