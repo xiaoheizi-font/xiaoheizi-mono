@@ -255,9 +255,39 @@ def pct_value(mapped: int, total: int) -> float:
     return round(100.0 * mapped / total, 2)
 
 
+@cache
+def emoji_presentation_set() -> frozenset[int]:
+    out: set[int] = set()
+    for lo, hi in EMOJI_PRESENTATION_RANGES:
+        out.update(cp for cp in range(lo, hi + 1) if _is_assigned(cp))
+    return frozenset(out)
+
+
+@cache
+def assigned_count(lo: int, hi: int) -> int:
+    return sum(1 for cp in range(lo, hi + 1) if _is_assigned(cp))
+
+
+def pack_coverage_row(cmap: dict[int, str], name: str, note: str, universe) -> dict:
+    mapped, total = count_mapped(cmap, universe)
+    value = pct_value(mapped, total)
+    return {
+        "name": name,
+        "note": note,
+        "mapped": mapped,
+        "total": total,
+        "percent": f"{value:.2f}%",
+        "percentValue": value,
+    }
+
+
 def product_coverage(cmap: dict[int, str]) -> dict:
     """规范 §4.2 产品向分集表。"""
     bmp_mapped = sum(1 for cp in cmap if cp <= 0xFFFF)
+    supp_mapped = sum(1 for cp in cmap if cp >= 0x10000)
+    supp_total = assigned_count(0x10000, 0x10FFFD)
+    all_mapped = len(cmap)
+    all_assigned = assigned_count(0x20, 0x10FFFD)
     cjk = [
         ("GB/T 2312", "简体中文基本集", gb2312_hanzi()),
         ("Big5 L1", "繁体中文高频用字基本集", big5_level1()),
@@ -280,23 +310,30 @@ def product_coverage(cmap: dict[int, str]) -> dict:
         ("中日韩统一表意文字扩展 E 区", "U+2B820–2CEAF", assigned_set(0x2B820, 0x2CEAF)),
         ("中日韩统一表意文字扩展 F 区", "U+2CEB0–2EBEF", assigned_set(0x2CEB0, 0x2EBEF)),
         ("中日韩统一表意文字扩展 G 区", "U+30000–3134F", assigned_set(0x30000, 0x3134F)),
+        ("中日韩统一表意文字扩展 H 区", "U+31350–323AF Unicode 15.0", assigned_set(0x31350, 0x323AF)),
         ("希腊和科普特字母", "U+0370–03FF", assigned_set(0x0370, 0x03FF)),
         ("泰文", "U+0E00–0E7F", assigned_set(0x0E00, 0x0E7F)),
+        ("拉丁文补充-1", "U+0080–00FF", assigned_set(0x0080, 0x00FF)),
+        ("通用标点", "U+2000–206F", assigned_set(0x2000, 0x206F)),
+        ("箭头", "U+2190–21FF", assigned_set(0x2190, 0x21FF)),
+        ("杂项技术用字符", "U+2300–23FF", assigned_set(0x2300, 0x23FF)),
+        ("带圈字母数字", "U+2460–24FF", assigned_set(0x2460, 0x24FF)),
+        ("制表符", "U+2500–257F", assigned_set(0x2500, 0x257F)),
+        ("方块元素", "U+2580–259F", assigned_set(0x2580, 0x259F)),
+        ("几何图形", "U+25A0–25FF", assigned_set(0x25A0, 0x25FF)),
+        ("杂项符号", "U+2600–26FF", assigned_set(0x2600, 0x26FF)),
+        ("印刷符号", "U+2700–27BF", assigned_set(0x2700, 0x27BF)),
+        ("杂项符号和箭头", "U+2B00–2BFF", assigned_set(0x2B00, 0x2BFF)),
+        ("注音符号", "U+3100–312F", assigned_set(0x3100, 0x312F)),
+        ("带圈 CJK 字母和月份", "U+3200–32FF", assigned_set(0x3200, 0x32FF)),
+        ("CJK 兼容字符", "U+3300–33FF", assigned_set(0x3300, 0x33FF)),
+        ("CJK 兼容表意文字", "U+F900–FAFF", assigned_set(0xF900, 0xFAFF)),
+        ("半角及全角形式", "U+FF00–FFEF", assigned_set(0xFF00, 0xFFEF)),
     ]
 
-    def pack(name: str, note: str, universe) -> dict:
-        mapped, total = count_mapped(cmap, universe)
-        value = pct_value(mapped, total)
-        return {
-            "name": name,
-            "note": note,
-            "mapped": mapped,
-            "total": total,
-            "percent": f"{value:.2f}%",
-            "percentValue": value,
-        }
-
     bmp_value = pct_value(bmp_mapped, BMP_DENOM)
+    supp_value = pct_value(supp_mapped, supp_total)
+    all_value = pct_value(all_mapped, all_assigned)
     return {
         "unicodeVersion": unicodedata.unidata_version,
         "overview": [
@@ -307,11 +344,67 @@ def product_coverage(cmap: dict[int, str]) -> dict:
                 "total": BMP_DENOM,
                 "percent": f"{bmp_value:.2f}%",
                 "percentValue": bmp_value,
-            }
+            },
+            {
+                "name": "增补平面",
+                "note": "已映射且码位 ≥ U+10000 / 该版本已分配",
+                "mapped": supp_mapped,
+                "total": supp_total,
+                "percent": f"{supp_value:.2f}%",
+                "percentValue": supp_value,
+            },
+            {
+                "name": "全平面已分配",
+                "note": "mapped / 该 Unicode 版本已分配标量值",
+                "mapped": all_mapped,
+                "total": all_assigned,
+                "percent": f"{all_value:.2f}%",
+                "percentValue": all_value,
+            },
         ],
-        "cjk": [pack(n, note, u) for n, note, u in cjk],
-        "unicode": [pack(n, note, u) for n, note, u in unicode_rows],
+        "cjk": [pack_coverage_row(cmap, n, note, u) for n, note, u in cjk],
+        "unicode": [pack_coverage_row(cmap, n, note, u) for n, note, u in unicode_rows],
     }
+
+
+def emoji_coverage(regular_cmap: dict[int, str], emoji_cmaps: list[tuple[str, dict]]) -> list[dict]:
+    """配套表情字体覆盖；Regular 的 Emoji_Presentation 故意为 0。"""
+    ep = emoji_presentation_set()
+    rows = [
+        pack_coverage_row(
+            regular_cmap,
+            "Emoji_Presentation · Regular",
+            "等宽本体故意不收录默认 emoji 表现",
+            ep,
+        )
+    ]
+    for label, cmap in emoji_cmaps:
+        rows.append(
+            pack_coverage_row(
+                cmap,
+                f"Emoji_Presentation · {label}",
+                "配套表情字体",
+                ep,
+            )
+        )
+    ms_cmap = None
+    for label, cmap in emoji_cmaps:
+        if "微软" in label:
+            ms_cmap = cmap
+            break
+    if ms_cmap is None and emoji_cmaps:
+        ms_cmap = emoji_cmaps[-1][1]
+    if ms_cmap is not None:
+        blocks = [
+            ("杂项符号及象形文字 · 微软", "U+1F300–1F5FF", 0x1F300, 0x1F5FF),
+            ("表情符号 · 微软", "U+1F600–1F64F Emoticons", 0x1F600, 0x1F64F),
+            ("交通和地图符号 · 微软", "U+1F680–1F6FF", 0x1F680, 0x1F6FF),
+            ("补充符号和象形文字 · 微软", "U+1F900–1F9FF", 0x1F900, 0x1F9FF),
+            ("符号和象形文字扩展 A · 微软", "U+1FA70–1FAFF", 0x1FA70, 0x1FAFF),
+        ]
+        for name, note, lo, hi in blocks:
+            rows.append(pack_coverage_row(ms_cmap, name, note, assigned_set(lo, hi)))
+    return rows
 
 
 def coverage_markdown_tables(product: dict) -> list[str]:
@@ -347,6 +440,18 @@ def coverage_markdown_tables(product: dict) -> list[str]:
         lines.append(
             f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {row['note']} |"
         )
+    if product.get("emoji"):
+        lines += [
+            "",
+            "## 表情",
+            "",
+            "| 集合 | 已覆盖 | 集合大小 | 覆盖率 | 说明 |",
+            "|------|--------|----------|--------|------|",
+        ]
+        for row in product["emoji"]:
+            lines.append(
+                f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {row['note']} |"
+            )
     return lines
 
 
@@ -818,7 +923,21 @@ def ensure_multi_em_dashes(font: TTFont) -> None:
         print("added multi-em dashes", added)
 
 
-def write_coverage(font: TTFont, sources: dict[str, str]) -> list[dict]:
+def load_emoji_cmaps(emoji_ttfs: list[Path] | None) -> list[tuple[str, dict]]:
+    out: list[tuple[str, dict]] = []
+    if not emoji_ttfs:
+        return out
+    for variant, path in zip(EMOJI_VARIANTS, emoji_ttfs):
+        if path.exists():
+            out.append((variant["family_zh"], TTFont(path).getBestCmap()))
+    return out
+
+
+def write_coverage(
+    font: TTFont,
+    sources: dict[str, str],
+    emoji_ttfs: list[Path] | None = None,
+) -> list[dict]:
     cmap = font.getBestCmap()
     hmtx = font["hmtx"]
     upem = font["head"].unitsPerEm
@@ -894,6 +1013,7 @@ def write_coverage(font: TTFont, sources: dict[str, str]) -> list[dict]:
     }
     DIST.mkdir(parents=True, exist_ok=True)
     product = product_coverage(cmap)
+    product["emoji"] = emoji_coverage(cmap, load_emoji_cmaps(emoji_ttfs))
     summary["productCoverage"] = product
     (DIST / "coverage-summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -931,12 +1051,15 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     (DIST / "preview.html").write_text(html, encoding="utf-8")
 
     tiny = TTFont(full_ttf)
-    product = product_coverage(tiny.getBestCmap())
+    cmap = tiny.getBestCmap()
+    product = product_coverage(cmap)
+    product["emoji"] = emoji_coverage(cmap, load_emoji_cmaps(emoji_ttfs))
     payload = {
         "unicodeVersion": product["unicodeVersion"],
         "overview": product["overview"],
         "cjk": product["cjk"],
         "unicode": product["unicode"],
+        "emoji": product["emoji"],
     }
     js = (
         "/* 由 scripts/build.py 生成，请勿手改 */\n"
@@ -1005,14 +1128,14 @@ def main() -> None:
     out = DIST / "XiaoheiziMono-Regular.ttf"
     print("save", out)
     base.save(out)
-    print("coverage")
-    built = TTFont(out)
-    violations = write_coverage(built, sources)
     emoji_outs = [DIST / v["out_name"] for v in EMOJI_VARIANTS]
     if emoji_needs_rebuild(emoji_outs):
         emoji_outs = build_all_emoji()
     else:
         print("reuse emoji", [p.name for p in emoji_outs])
+    print("coverage")
+    built = TTFont(out)
+    violations = write_coverage(built, sources, emoji_outs)
     write_preview(out, emoji_outs)
     shutil.copyfile(ROOT / "OFL.txt", DIST / "OFL.txt")
     if JBM_OFL.exists():
