@@ -22,7 +22,7 @@ SARASA = VENDOR / "sarasa-fixed-sc" / "SarasaFixedSC-Regular.ttf"
 JBM = VENDOR / "jetbrains-mono" / "fonts" / "ttf" / "JetBrainsMonoNL-Regular.ttf"
 JBM_OFL = VENDOR / "jetbrains-mono" / "OFL.txt"
 
-# 规范 §6：配套表情字体，不并入 Regular
+# 规范 §6：配套表情字体，不并入 Regular；Regular 剔除 Emoji_Presentation
 NOTO_EMOJI = VENDOR / "noto-emoji" / "Noto-COLRv1.ttf"
 NOTO_EMOJI_OFL = VENDOR / "noto-emoji" / "LICENSE"
 FLUENT_EMOJI = VENDOR / "fluent-emoji" / "FluentEmojiColor.ttf"
@@ -98,6 +98,93 @@ FAMILY_EN = "Xiaoheizi Mono"
 FAMILY_ZH = "小黑字等宽"
 FULL_EN = "Xiaoheizi Mono Regular"
 PS_NAME = "XiaoheiziMono-Regular"
+TARGET_UPEM = 1000  # Regular 与配套表情同一 em；1 em = 2 格
+
+# Unicode Emoji_Presentation。Regular 从 cmap 剔除，避免挡住配套彩色表情。
+# 不含 ⚠★❤☀✓✔ 等默认文本表现字符。
+EMOJI_PRESENTATION_RANGES = (
+    (0x231A, 0x231B),
+    (0x23E9, 0x23EC),
+    (0x23F0, 0x23F0),
+    (0x23F3, 0x23F3),
+    (0x25FD, 0x25FE),
+    (0x2614, 0x2615),
+    (0x2648, 0x2653),
+    (0x267F, 0x267F),
+    (0x2693, 0x2693),
+    (0x26A1, 0x26A1),
+    (0x26AA, 0x26AB),
+    (0x26BD, 0x26BE),
+    (0x26C4, 0x26C5),
+    (0x26CE, 0x26CE),
+    (0x26D4, 0x26D4),
+    (0x26EA, 0x26EA),
+    (0x26F2, 0x26F3),
+    (0x26F5, 0x26F5),
+    (0x26FA, 0x26FA),
+    (0x26FD, 0x26FD),
+    (0x2705, 0x2705),
+    (0x270A, 0x270B),
+    (0x2728, 0x2728),
+    (0x274C, 0x274C),
+    (0x274E, 0x274E),
+    (0x2753, 0x2755),
+    (0x2757, 0x2757),
+    (0x2795, 0x2797),
+    (0x27B0, 0x27B0),
+    (0x27BF, 0x27BF),
+    (0x2B1B, 0x2B1C),
+    (0x2B50, 0x2B50),
+    (0x2B55, 0x2B55),
+    (0x1F004, 0x1F004),
+    (0x1F0CF, 0x1F0CF),
+    (0x1F18E, 0x1F18E),
+    (0x1F191, 0x1F19A),
+    (0x1F1E6, 0x1F1FF),
+    (0x1F201, 0x1F201),
+    (0x1F21A, 0x1F21A),
+    (0x1F22F, 0x1F22F),
+    (0x1F232, 0x1F236),
+    (0x1F238, 0x1F23A),
+    (0x1F250, 0x1F251),
+    (0x1F300, 0x1F320),
+    (0x1F32D, 0x1F335),
+    (0x1F337, 0x1F37C),
+    (0x1F37E, 0x1F393),
+    (0x1F3A0, 0x1F3CA),
+    (0x1F3CF, 0x1F3D3),
+    (0x1F3E0, 0x1F3F0),
+    (0x1F3F4, 0x1F3F4),
+    (0x1F3F8, 0x1F43E),
+    (0x1F440, 0x1F440),
+    (0x1F442, 0x1F4FC),
+    (0x1F4FF, 0x1F53D),
+    (0x1F54B, 0x1F54E),
+    (0x1F550, 0x1F567),
+    (0x1F57A, 0x1F57A),
+    (0x1F595, 0x1F596),
+    (0x1F5A4, 0x1F5A4),
+    (0x1F5FB, 0x1F64F),
+    (0x1F680, 0x1F6C5),
+    (0x1F6CC, 0x1F6CC),
+    (0x1F6D0, 0x1F6D2),
+    (0x1F6D5, 0x1F6D8),
+    (0x1F6DC, 0x1F6DF),
+    (0x1F6EB, 0x1F6EC),
+    (0x1F6F4, 0x1F6FC),
+    (0x1F7E0, 0x1F7EB),
+    (0x1F7F0, 0x1F7F0),
+    (0x1F90C, 0x1F93A),
+    (0x1F93C, 0x1F945),
+    (0x1F947, 0x1F9FF),
+    (0x1FA70, 0x1FA7C),
+    (0x1FA80, 0x1FA8A),
+    (0x1FA8E, 0x1FAC6),
+    (0x1FAC8, 0x1FAC8),
+    (0x1FACD, 0x1FADC),
+    (0x1FADF, 0x1FAEA),
+    (0x1FAEF, 0x1FAF8),
+)
 
 
 def _is_assigned(cp: int) -> bool:
@@ -270,6 +357,24 @@ def in_jbm_ranges(cp: int) -> bool:
     return any(lo <= cp <= hi for lo, hi in JBM_RANGES)
 
 
+def is_emoji_presentation(cp: int) -> bool:
+    return any(lo <= cp <= hi for lo, hi in EMOJI_PRESENTATION_RANGES)
+
+
+def strip_emoji_presentation(font: TTFont) -> int:
+    """从 cmap 去掉默认 emoji 表现字符，让配套彩色字体能够露出来。"""
+    dropped: set[int] = set()
+    for table in font["cmap"].tables:
+        if table.format == 14 or not table.isUnicode():
+            continue
+        for cp in [c for c in table.cmap if is_emoji_presentation(c)]:
+            del table.cmap[cp]
+            dropped.add(cp)
+        table.data = None
+    print("stripped emoji presentation", len(dropped))
+    return len(dropped)
+
+
 def collect_names(font: TTFont, unicodes: set[int]) -> set[str]:
     cmap = font.getBestCmap()
     glyf = font["glyf"]
@@ -387,14 +492,13 @@ def scale_colr_paints(font: TTFont, s: float) -> None:
 
 
 def fit_emoji_to_em(font: TTFont) -> float:
-    """把最常见的非零推进宽度收到 1 em，使一枚 emoji 占两格。"""
+    """把最常见的非零推进收到 1 em，并把 unitsPerEm 改成与 Regular 相同的 1000。"""
     from collections import Counter
 
-    upem = font["head"].unitsPerEm
     metrics = font["hmtx"].metrics
     counts = Counter(adv for adv, _lsb in metrics.values() if adv > 0)
     typical, _n = counts.most_common(1)[0]
-    scale = upem / typical
+    scale = TARGET_UPEM / typical
     glyf = font["glyf"] if "glyf" in font else None
     for name in font.getGlyphOrder():
         if glyf is not None:
@@ -403,18 +507,27 @@ def fit_emoji_to_em(font: TTFont) -> float:
         if adv == 0:
             metrics[name] = (0, _scale_int(lsb, scale))
         else:
-            metrics[name] = (upem, _scale_int(lsb, scale))
+            metrics[name] = (TARGET_UPEM, _scale_int(lsb, scale))
     scale_colr_paints(font, scale)
+    font["head"].unitsPerEm = TARGET_UPEM
     hhea = font["hhea"]
     hhea.ascent = _scale_int(hhea.ascent, scale)
     hhea.descent = _scale_int(hhea.descent, scale)
-    hhea.advanceWidthMax = upem
+    hhea.advanceWidthMax = TARGET_UPEM
     if "vmtx" in font:
         for name, (adv, tsb) in list(font["vmtx"].metrics.items()):
             font["vmtx"].metrics[name] = (
                 _scale_int(adv, scale) if adv else 0,
                 _scale_int(tsb, scale),
             )
+    if "vhea" in font:
+        vhea = font["vhea"]
+        for attr in (
+            "ascent", "descent", "lineGap", "advanceHeightMax",
+            "minTopSideBearing", "minBottomSideBearing", "yMaxExtent",
+        ):
+            if hasattr(vhea, attr):
+                setattr(vhea, attr, _scale_int(getattr(vhea, attr), scale))
     if "OS/2" in font:
         os2 = font["OS/2"]
         for attr in (
@@ -471,6 +584,18 @@ def build_emoji_variant(variant: dict) -> Path:
     print("save", out, "scale", round(scale, 6))
     font.save(out)
     return out
+
+
+def emoji_needs_rebuild(paths: list[Path]) -> bool:
+    if not all(p.exists() for p in paths):
+        return True
+    for path in paths:
+        font = TTFont(path)
+        upem = font["head"].unitsPerEm
+        font.close()
+        if upem != TARGET_UPEM:
+            return True
+    return False
 
 
 def build_all_emoji() -> list[Path]:
@@ -844,6 +969,7 @@ def main() -> None:
     strip_ligatures(base)
     apply_uax11_metrics(base)
     ensure_multi_em_dashes(base)
+    strip_emoji_presentation(base)
     set_names(base)
     sanitize_for_ots(base)
     out = DIST / "XiaoheiziMono-Regular.ttf"
@@ -853,10 +979,10 @@ def main() -> None:
     built = TTFont(out)
     violations = write_coverage(built, sources)
     emoji_outs = [DIST / v["out_name"] for v in EMOJI_VARIANTS]
-    if all(p.exists() for p in emoji_outs):
-        print("reuse emoji", [p.name for p in emoji_outs])
-    else:
+    if emoji_needs_rebuild(emoji_outs):
         emoji_outs = build_all_emoji()
+    else:
+        print("reuse emoji", [p.name for p in emoji_outs])
     write_preview(out, emoji_outs)
     shutil.copyfile(ROOT / "OFL.txt", DIST / "OFL.txt")
     if JBM_OFL.exists():
@@ -873,6 +999,7 @@ def main() -> None:
     print("A", h[a[ord("A")]][0], "zhong", h[a[0x4E2D]][0], "box", h[a[0x2500]][0])
     print("circled21", h[a[0x3251]][0], "hw-kiyeok", h[a[0xFFA1]][0], "corp", h[a[0x337F]][0])
     print("emdash", h[a[0x2014]][0], "emspace", h[a[0x2003]][0], "twoem", h[a[0x2E3A]][0], "threeem", h[a[0x2E3B]][0])
+    print("check-ep", 0x2705 in a, "voltage-ep", 0x26A1 in a, "warn-keep", 0x26A0 in a)
     print("done", out, "bytes", out.stat().st_size)
 
 

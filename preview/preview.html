@@ -29,17 +29,20 @@
       margin: 2rem;
       background: #111;
       color: #eee;
-      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji", sans-serif;
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS", sans-serif;
     }
     p { opacity: 0.85; max-width: 52rem; }
     pre {
-      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji", monospace;
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS", monospace;
       font-size: 18px;
       line-height: 1.2;
       white-space: pre;
       background: #1c1c1c;
       padding: 1rem 1.2rem;
       border-radius: 8px;
+    }
+    pre.emoji-noto {
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji", monospace;
     }
     pre.emoji-ms {
       font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS", monospace;
@@ -78,7 +81,7 @@
 </head>
 <body>
   <h1>小黑字等宽</h1>
-  <p>标题与下面预览必须是同一套字。汉字应是思源/更纱黑体，西文是 JetBrains Mono。彩色 emoji 有两套配套字体，都按 1 em（两格）对齐：默认「小黑字表情」为 Noto；「小黑字表情微软」为 Fluent 画风。<code>✅</code> <code>⚡</code> 在 Unicode 里是默认 emoji 表现、East_Asian_Width 为 Wide，占 1 em（2 格）；Regular 收了黑白字形，所以不会落到彩色表情字体。</p>
+  <p>标题与下面预览必须是同一套字。汉字应是思源/更纱黑体，西文是 JetBrains Mono。彩色 emoji 有两套配套字体，都按 1 em（两格）对齐，<code>unitsPerEm</code> 与 Regular 同为 1000：本页默认回落「小黑字表情微软」（Fluent）；下方单独两块再对照谷歌 Noto 与微软。<code>✅</code> <code>⚡</code> 是默认 emoji 表现，占 1 em（2 格）；Regular 已从 cmap 剔除它们，因此会显示彩色表情，而不会被更纱的黑白轮廓挡住。<code>⚠★❤☀✓✔→←</code> 无默认 emoji 表现，仍由 Regular 占 0.5 em（1 格）。</p>
   <pre>
 ┌────────┬────────┐
 │id      │值      │
@@ -149,12 +152,12 @@
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 </pre>
 
-  <h2>小黑字表情（Noto）</h2>
+  <h2>表情对照：谷歌 Noto</h2>
   <pre class="emoji-noto">┌────────┬────────┐
 │😀🦀🎉  │📁🚀🔥  │
 │Noto    │谷歌    │
 └────────┴────────┘</pre>
-  <h2>小黑字表情微软（Fluent）</h2>
+  <h2>表情对照：微软 Fluent</h2>
   <pre class="emoji-ms">┌────────┬────────┐
 │😀🦀🎉  │📁🚀🔥  │
 │MS      │微软    │
