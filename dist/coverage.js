@@ -5,7 +5,7 @@ window.XIAOHEIZI_COVERAGE = {
     {
       "name": "总字符数（BMP）",
       "note": "已映射且码位 ≤ U+FFFF / 65535",
-      "mapped": 46128,
+      "mapped": 46130,
       "total": 65535,
       "percent": "70.39%",
       "percentValue": 70.39

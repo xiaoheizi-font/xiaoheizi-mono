@@ -74,9 +74,30 @@ REQUIRED_BLOCKS = (
     ("Halfwidth and Fullwidth Forms", 0xFF00, 0xFFEF),
 )
 
+# 名称里的 em：按排版长度（1.0 = 一个汉字宽），不压成 UAX #11 的半格
+NAMED_EM_RATIO = {
+    0x2000: 0.5,       # EN QUAD
+    0x2001: 1.0,       # EM QUAD
+    0x2002: 0.5,       # EN SPACE
+    0x2003: 1.0,       # EM SPACE
+    0x2004: 1 / 3,     # THREE-PER-EM SPACE
+    0x2005: 1 / 4,     # FOUR-PER-EM SPACE
+    0x2006: 1 / 6,     # SIX-PER-EM SPACE
+    0x2009: 1 / 5,     # THIN SPACE
+    0x200A: 1 / 10,    # HAIR SPACE
+    0x2013: 0.5,       # EN DASH
+    0x2014: 1.0,       # EM DASH
+    0x2E3A: 2.0,       # TWO-EM DASH
+    0x2E3B: 3.0,       # THREE-EM DASH
+}
+
 SCALE = 500 / 600  # JBM 0.6em → 半个汉字
 PREFIX = "jbm."
 BMP_DENOM = 65535  # 规范 §4.2：BMP 习惯分母（U+0000–U+FFFF）
+FAMILY_EN = "Xiaoheizi Mono"
+FAMILY_ZH = "小黑字等宽"
+FULL_EN = "Xiaoheizi Mono Regular"
+PS_NAME = "XiaoheiziMono-Regular"
 
 
 def _is_assigned(cp: int) -> bool:
@@ -529,18 +550,120 @@ def set_names(font: TTFont) -> None:
     font["post"].isFixedPitch = 1
 
 
+def expected_advance(cp: int, upem: int) -> int:
+    """名称里的 em 按排版长度；其余走 UAX #11。Mn/Me 见 §6.2；Cf/Cc 按 POSIX wcwidth 不计列。"""
+    if cp in NAMED_EM_RATIO:
+        return round(NAMED_EM_RATIO[cp] * upem)
+    if cp >= 0x110000:
+        return upem // 2
+    cat = unicodedata.category(chr(cp))
+    if cat in {"Mn", "Me", "Cf", "Cc", "Zl", "Zp"}:
+        return 0
+    eaw = unicodedata.east_asian_width(chr(cp))
+    if eaw in {"W", "F"}:
+        return upem
+    return upem // 2
+
+
 def expected_cells(cp: int, advance: int, upem: int) -> int | None:
-    cat = unicodedata.category(chr(cp)) if cp < 0x110000 else "Cn"
-    if cat in {"Mn", "Me"}:
+    """对照应得推进；合则返回格子（可大于 2），不合则 None。分数 em 返回 None 以外的 0 并在覆盖表用 ~。"""
+    exp = expected_advance(cp, upem)
+    if abs(advance - exp) > 1:
+        return None
+    if exp == 0:
         return 0
-    ratio = advance / upem
-    if abs(ratio - 0.5) <= 0.002:
-        return 1
-    if abs(ratio - 1.0) <= 0.002:
-        return 2
-    if advance == 0:
-        return 0
-    return None
+    cells = exp / (upem / 2)
+    rounded = round(cells)
+    if abs(cells - rounded) <= 0.02:
+        return int(rounded)
+    return -1  # 不足 1 格的分数 em，覆盖表记为 ~
+
+
+def apply_uax11_metrics(font: TTFont) -> int:
+    """按应得宽度改 hmtx；有轮廓的字横向拉伸到新推进，空格只改推进。"""
+    cmap_tables = [
+        t for t in font["cmap"].tables if t.isUnicode() and t.format != 14
+    ]
+    hmtx = font["hmtx"]
+    glyf = font["glyf"]
+    upem = font["head"].unitsPerEm
+    by_glyph: dict[str, dict[int, list[int]]] = {}
+    seen: set[int] = set()
+    for table in cmap_tables:
+        for cp, gname in table.cmap.items():
+            if cp in seen:
+                continue
+            seen.add(cp)
+            exp = expected_advance(cp, upem)
+            by_glyph.setdefault(gname, {}).setdefault(exp, []).append(cp)
+
+    changed = 0
+    order = list(font.getGlyphOrder())
+    for gname, widths in by_glyph.items():
+        items = list(widths.items())
+        items.sort(key=lambda pair: -len(pair[1]))
+        for i, (exp, cps) in enumerate(items):
+            name = gname
+            if i > 0:
+                name = f"uax11.{gname}.{exp}"
+                glyf[name] = copy.deepcopy(glyf[gname])
+                hmtx[name] = hmtx[gname]
+                order.append(name)
+                for table in cmap_tables:
+                    for cp in cps:
+                        if cp in table.cmap:
+                            table.cmap[cp] = name
+                            table.data = None
+            adv, lsb = hmtx[name]
+            if abs(adv - exp) <= 1:
+                continue
+            glyph = glyf[name]
+            has_outline = glyph.numberOfContours > 0 or glyph.isComposite()
+            if has_outline and adv > 0 and exp > 0:
+                scale_glyph(glyph, glyf, exp / adv, 1.0)
+                lsb = round(lsb * exp / adv)
+            elif exp > adv > 0:
+                lsb = lsb + (exp - adv) // 2
+            hmtx[name] = (exp, lsb)
+            changed += 1
+    font.setGlyphOrder(order)
+    font["maxp"].numGlyphs = len(order)
+    print("uax11 metrics changed", changed)
+    return changed
+
+
+def ensure_multi_em_dashes(font: TTFont) -> None:
+    """补 TWO-EM / THREE-EM DASH：从已拉到 1 em 的 EM DASH 横向复制。"""
+    cmap = font.getBestCmap()
+    src_cp = 0x2014
+    if src_cp not in cmap:
+        return
+    glyf = font["glyf"]
+    hmtx = font["hmtx"]
+    upem = font["head"].unitsPerEm
+    src = cmap[src_cp]
+    order = list(font.getGlyphOrder())
+    added = 0
+    for cp, em, suffix in ((0x2E3A, 2, "two"), (0x2E3B, 3, "three")):
+        if cp in cmap:
+            continue
+        name = f"named.{suffix}emdash"
+        glyf[name] = copy.deepcopy(glyf[src])
+        old_adv, old_lsb = hmtx[src]
+        new_adv = em * upem
+        ratio = new_adv / old_adv if old_adv else float(em)
+        scale_glyph(glyf[name], glyf, ratio, 1.0)
+        hmtx[name] = (new_adv, round(old_lsb * ratio))
+        order.append(name)
+        for table in font["cmap"].tables:
+            if table.isUnicode() and table.format != 14:
+                table.cmap[cp] = name
+                table.data = None
+        added += 1
+    if added:
+        font.setGlyphOrder(order)
+        font["maxp"].numGlyphs = len(order)
+        print("added multi-em dashes", added)
 
 
 def write_coverage(font: TTFont, sources: dict[str, str]) -> list[dict]:
@@ -551,7 +674,11 @@ def write_coverage(font: TTFont, sources: dict[str, str]) -> list[dict]:
     for cp, gname in cmap.items():
         adv = hmtx[gname][0]
         if expected_cells(cp, adv, upem) is None:
-            violations.append({"cp": f"U+{cp:04X}", "advance": adv})
+            violations.append({
+                "cp": f"U+{cp:04X}",
+                "advance": adv,
+                "expected": expected_advance(cp, upem),
+            })
 
     mapped = len(cmap)
     assigned = 0
@@ -572,7 +699,12 @@ def write_coverage(font: TTFont, sources: dict[str, str]) -> list[dict]:
         for cp in in_font:
             adv = hmtx[cmap[cp]][0]
             c = expected_cells(cp, adv, upem)
-            cells.add("0" if c == 0 else ("1" if c == 1 else ("2" if c == 2 else "?")))
+            if c is None:
+                cells.add("?")
+            elif c < 0:
+                cells.add("~")
+            else:
+                cells.add(str(c))
             origin.add(sources.get(f"U+{cp:04X}", "sarasa"))
         if cells <= {"1"}:
             grid = "1"
@@ -581,7 +713,7 @@ def write_coverage(font: TTFont, sources: dict[str, str]) -> list[dict]:
         elif cells <= {"1", "2"}:
             grid = "混"
         else:
-            grid = ",".join(sorted(cells))
+            grid = "混"
         cov = 100.0 * len(in_font) / len(assigned_blk) if assigned_blk else 0.0
         block_rows.append(
             {
@@ -669,7 +801,14 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     sub = Subsetter(options=opt)
     sub.populate(
         text=html + js,
-        unicodes=list(range(0x20, 0x7F)) + list(range(0x2500, 0x25A0)),
+        unicodes=list(range(0x20, 0x7F))
+        + [0xA0]
+        + list(range(0x2000, 0x2070))
+        + list(range(0x2190, 0x2200))
+        + list(range(0x2500, 0x25A0))
+        + list(range(0x2600, 0x27C0))
+        + list(range(0x2B00, 0x2C00))
+        + [0x2E3A, 0x2E3B, 0x3000],
     )
     sub.subset(tiny)
     sanitize_for_ots(tiny)
@@ -703,6 +842,8 @@ def main() -> None:
         if tag in base:
             del base[tag]
     strip_ligatures(base)
+    apply_uax11_metrics(base)
+    ensure_multi_em_dashes(base)
     set_names(base)
     sanitize_for_ots(base)
     out = DIST / "XiaoheiziMono-Regular.ttf"
@@ -711,7 +852,11 @@ def main() -> None:
     print("coverage")
     built = TTFont(out)
     violations = write_coverage(built, sources)
-    emoji_outs = build_all_emoji()
+    emoji_outs = [DIST / v["out_name"] for v in EMOJI_VARIANTS]
+    if all(p.exists() for p in emoji_outs):
+        print("reuse emoji", [p.name for p in emoji_outs])
+    else:
+        emoji_outs = build_all_emoji()
     write_preview(out, emoji_outs)
     shutil.copyfile(ROOT / "OFL.txt", DIST / "OFL.txt")
     if JBM_OFL.exists():
@@ -726,6 +871,8 @@ def main() -> None:
     a = built.getBestCmap()
     h = built["hmtx"]
     print("A", h[a[ord("A")]][0], "zhong", h[a[0x4E2D]][0], "box", h[a[0x2500]][0])
+    print("circled21", h[a[0x3251]][0], "hw-kiyeok", h[a[0xFFA1]][0], "corp", h[a[0x337F]][0])
+    print("emdash", h[a[0x2014]][0], "emspace", h[a[0x2003]][0], "twoem", h[a[0x2E3A]][0], "threeem", h[a[0x2E3B]][0])
     print("done", out, "bytes", out.stat().st_size)
 
 

@@ -1,14 +1,14 @@
 # 小黑字等宽 · 字符覆盖（预览构建）
 
 - Unicode 15.0.0（Python unicodedata）
-- 全平面已映射 51047 / 已分配 288735 = 17.6795%
+- 全平面已映射 51049 / 已分配 288735 = 17.6802%
 - 宽度违规 0（发布时必须为 0）
 
 ## 总览
 
 | 项目 | 已覆盖 | 集合大小 | 覆盖率 | 说明 |
 |------|--------|----------|--------|------|
-| 总字符数（BMP） | 46128 | 65535 | 70.39% | 已映射且码位 ≤ U+FFFF / 65535 |
+| 总字符数（BMP） | 46130 | 65535 | 70.39% | 已映射且码位 ≤ U+FFFF / 65535 |
 
 ## CJK
 
@@ -45,9 +45,9 @@
 
 | 区块 | 范围 | 该版本已分配 | 已覆盖 | 覆盖率 | 格子 | 来源 |
 |------|------|--------------|--------|--------|------|------|
-| Basic Latin | U+0000–U+007F | 128 | 96 | 75.0% | 1 | sarasa |
-| Box Drawing | U+2500–U+257F | 128 | 128 | 100.0% | 1 | sarasa |
-| Block Elements | U+2580–U+259F | 32 | 32 | 100.0% | 1 | sarasa |
+| Basic Latin | U+0000–U+007F | 128 | 96 | 75.0% | 混 | jetbrains-mono |
+| Box Drawing | U+2500–U+257F | 128 | 128 | 100.0% | 1 | jetbrains-mono |
+| Block Elements | U+2580–U+259F | 32 | 32 | 100.0% | 1 | jetbrains-mono |
 | CJK Unified Ideographs | U+4E00–U+9FFF | 20992 | 20992 | 100.0% | 2 | sarasa |
-| CJK Symbols and Punctuation | U+3000–U+303F | 64 | 64 | 100.0% | 0,1,2 | sarasa |
+| CJK Symbols and Punctuation | U+3000–U+303F | 64 | 64 | 100.0% | 混 | sarasa |
 | Halfwidth and Fullwidth Forms | U+FF00–U+FFEF | 225 | 225 | 100.0% | 混 | sarasa |
