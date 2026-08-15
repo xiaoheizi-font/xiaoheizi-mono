@@ -667,7 +667,10 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     opt.ignore_missing_unicodes = True
     opt.layout_features = "*"
     sub = Subsetter(options=opt)
-    sub.populate(text=html + js, unicodes=range(0x20, 0x7F))
+    sub.populate(
+        text=html + js,
+        unicodes=list(range(0x20, 0x7F)) + list(range(0x2500, 0x25A0)),
+    )
     sub.subset(tiny)
     sanitize_for_ots(tiny)
     tiny.save(DIST / "preview.ttf")
