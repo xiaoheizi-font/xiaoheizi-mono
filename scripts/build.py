@@ -100,6 +100,9 @@ FULL_EN = "Xiaoheizi Mono Regular"
 PS_NAME = "XiaoheiziMono-Regular"
 TARGET_UPEM = 1000  # Regular 与配套表情同一 em；1 em = 2 格
 
+# 表情序列用到的零宽/组合码位，本身不是「一幅图」，但 cmap 里要留着才能拼 ZWJ / 键帽。
+EMOJI_SEQUENCE_CPS = frozenset({0x200D, 0xFE0E, 0xFE0F, 0x20E3})
+
 # Unicode Emoji_Presentation。Regular 从 cmap 剔除，避免挡住配套彩色表情。
 # 不含 ⚠★❤☀✓✔ 等默认文本表现字符。
 EMOJI_PRESENTATION_RANGES = (
@@ -375,6 +378,25 @@ def strip_emoji_presentation(font: TTFont) -> int:
     return len(dropped)
 
 
+def keep_in_emoji_font(cp: int) -> bool:
+    """去掉 ASCII（数字、#*、空格），保留 EP 以及可用栈覆盖的特殊符号。"""
+    return cp >= 0x80
+
+
+def strip_non_emoji_from_emoji_font(font: TTFont) -> int:
+    """去掉 ASCII，避免覆盖等宽数字；⚠❤☀ 等特殊符号保留。"""
+    dropped: set[int] = set()
+    for table in font["cmap"].tables:
+        if table.format == 14 or not table.isUnicode():
+            continue
+        for cp in [c for c in table.cmap if not keep_in_emoji_font(c)]:
+            del table.cmap[cp]
+            dropped.add(cp)
+        table.data = None
+    print("emoji dropped ASCII cmap", len(dropped))
+    return len(dropped)
+
+
 def collect_names(font: TTFont, unicodes: set[int]) -> set[str]:
     cmap = font.getBestCmap()
     glyf = font["glyf"]
@@ -578,6 +600,7 @@ def build_emoji_variant(variant: dict) -> Path:
             del font[tag]
     print("fit emoji to 1em", variant["family_en"])
     scale = fit_emoji_to_em(font)
+    strip_non_emoji_from_emoji_font(font)
     set_emoji_names(font, variant)
     sanitize_for_ots(font)
     out = DIST / variant["out_name"]
@@ -592,8 +615,12 @@ def emoji_needs_rebuild(paths: list[Path]) -> bool:
     for path in paths:
         font = TTFont(path)
         upem = font["head"].unitsPerEm
+        cmap = font.getBestCmap()
         font.close()
         if upem != TARGET_UPEM:
+            return True
+        # 数字不应出现在表情 cmap；⚠ 这类可覆盖符号必须保留
+        if 0x30 in cmap or 0x26A0 not in cmap:
             return True
     return False
 
@@ -930,10 +957,13 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
         + [0xA0]
         + list(range(0x2000, 0x2070))
         + list(range(0x2190, 0x2200))
-        + list(range(0x2500, 0x25A0))
+        + list(range(0x2300, 0x2400))
+        + list(range(0x2500, 0x2600))
         + list(range(0x2600, 0x27C0))
+        + list(range(0x2900, 0x2980))
         + list(range(0x2B00, 0x2C00))
-        + [0x2E3A, 0x2E3B, 0x3000],
+        + [0x2E3A, 0x2E3B, 0x3000, 0x3030, 0x303D, 0x3297, 0x3299]
+        + list(range(0x1F170, 0x1F240)),
     )
     sub.subset(tiny)
     sanitize_for_ots(tiny)

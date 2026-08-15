@@ -47,6 +47,12 @@
     pre.emoji-ms {
       font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS", monospace;
     }
+    pre.overlap-mono {
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS", monospace;
+    }
+    pre.overlap-emoji {
+      font-family: "Xiaoheizi Emoji MS", "Xiaoheizi Mono", monospace;
+    }
     h1, h2 { font-weight: 400; }
     h2 { margin: 1.6rem 0 0.6rem; font-size: 1.1rem; }
     .meta { opacity: 0.65; margin-bottom: 0.8rem; }
@@ -162,6 +168,56 @@
 │😀🦀🎉  │📁🚀🔥  │
 │MS      │微软    │
 └────────┴────────┘</pre>
+
+  <h2>用字体栈选择是否覆盖特殊符号</h2>
+  <p>表情字体<strong>去掉 ASCII</strong>（数字 <code>0-9</code>、<code>#*</code>、空格），所以不会把等宽数字吃掉。重叠的几十个特殊符号（<code>⚠❤☀✔©®</code> 以及下面各行）<strong>两边都有</strong>：Regular 里是 0.5 em 的文本轮廓，表情字体里是 1 em 的彩色图。用户用配置改栈顺序即可选择是否覆盖。</p>
+  <p>下面两份示例字符完全相同。第一份等宽在前：半格符号对齐，数字也对齐。第二份表情在前：数字仍走 Regular（表情没有 ASCII）；特殊符号被彩色盖住、变成 2 格，8 格框会被撑破。这是预期行为，不是排版错误。</p>
+
+  <h2>等宽在前（不覆盖，推荐排表）</h2>
+  <p><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS"</code></p>
+  <pre class="overlap-mono">┌────────┐
+│#*012345│
+│6789    │
+│©®‼⁉™ℹ↔↕│
+│↖↗↘↙↩↪⌨⏏│
+│⏭⏮⏯⏱⏲⏸⏹⏺│
+│Ⓜ▪▫▶◀◻◼☀│
+│☁☂☃☎☑☝☦☯│
+│☹☺♀♂♠♣♥♦│
+│♨♻♾⚙⚛⚠✂✔│
+│✖✝✡✳✴❄❇❤│
+│➡⤴⤵⬅⬆⬇  │
+│🅰🅱🅾🅿    │
+│id 12 ✅│
+│✅⚡😀🦀│
+└────────┘
+
+┌────────────┐
+│〰〽㊗㊙🈂🈷│
+└────────────┘</pre>
+
+  <h2>表情在前（覆盖特殊符号）</h2>
+  <p><code>font-family: "Xiaoheizi Emoji MS", "Xiaoheizi Mono"</code>。数字行应仍对齐；从 <code>©®</code> 起被彩色覆盖，行会变宽。</p>
+  <pre class="overlap-emoji">┌────────┐
+│#*012345│
+│6789    │
+│©®‼⁉™ℹ↔↕│
+│↖↗↘↙↩↪⌨⏏│
+│⏭⏮⏯⏱⏲⏸⏹⏺│
+│Ⓜ▪▫▶◀◻◼☀│
+│☁☂☃☎☑☝☦☯│
+│☹☺♀♂♠♣♥♦│
+│♨♻♾⚙⚛⚠✂✔│
+│✖✝✡✳✴❄❇❤│
+│➡⤴⤵⬅⬆⬇  │
+│🅰🅱🅾🅿    │
+│id 12 ✅│
+│✅⚡😀🦀│
+└────────┘
+
+┌────────────┐
+│〰〽㊗㊙🈂🈷│
+└────────────┘</pre>
 
   <div id="coverage">
     <p id="coverage-error">正在读取 coverage.js。若一直停在这里，请先运行 <code>python scripts/build.py</code>，再用浏览器打开 <code>dist/preview.html</code>。</p>
