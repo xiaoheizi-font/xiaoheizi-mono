@@ -35,7 +35,7 @@ python scripts/fetch-vendor.py
 python scripts/build.py
 ```
 
-用浏览器打开 `dist/preview.html`（请刷新）。页面模板在 `preview/preview.html`，覆盖率由同目录的 `coverage.js` 填入。Markdown 覆盖表在 `dist/coverage-blocks.md`。
+用浏览器打开 `dist/preview.html`（请刷新）。页面模板在 `preview/preview.html`，覆盖率与字符图鉴由同目录的 `coverage.js` 填入。Markdown 覆盖表在 `dist/coverage-blocks.md`。
 
 ## GitHub 自动发布
 

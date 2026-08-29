@@ -61,7 +61,7 @@
     .meta { opacity: 0.65; margin-bottom: 0.8rem; }
     table.coverage {
       width: 100%;
-      max-width: 52rem;
+      max-width: 72rem;
       border-collapse: collapse;
       font-variant-numeric: tabular-nums;
     }
@@ -112,6 +112,120 @@
     }
     .tab-panel[hidden] { display: none; }
     .tab-note { opacity: 0.75; margin: 0.7rem 0 0; }
+    #block-filter {
+      font: inherit;
+      background: #1c1c1c;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      margin: 0.4rem 0 0.8rem;
+      min-width: 16rem;
+    }
+    .catalog {
+      max-width: none;
+      margin: 1.4rem 0 2rem;
+    }
+    .catalog-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      align-items: center;
+      margin: 0.6rem 0 0.8rem;
+    }
+    .catalog-toolbar button,
+    .catalog-toolbar input {
+      font: inherit;
+      background: #1c1c1c;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+    }
+    .catalog-toolbar button { cursor: pointer; }
+    .catalog-toolbar button:disabled { opacity: 0.4; cursor: default; }
+    .catalog-picker {
+      position: relative;
+      flex: 1 1 28rem;
+      min-width: min(28rem, 100%);
+    }
+    .catalog-picker-toggle {
+      display: block;
+      width: 100%;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background-color: #1c1c1c;
+      background-image: linear-gradient(
+        to right,
+        rgba(90, 168, 255, 0.28) var(--pct, 0%),
+        transparent var(--pct, 0%)
+      );
+    }
+    .catalog-picker-list {
+      position: absolute;
+      z-index: 8;
+      left: 0;
+      right: 0;
+      max-height: 22rem;
+      overflow: auto;
+      margin: 0.25rem 0 0;
+      padding: 0;
+      list-style: none;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #161616;
+    }
+    .catalog-picker-list[hidden] { display: none; }
+    .catalog-picker-list li {
+      padding: 0.35rem 0.55rem;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background-color: transparent;
+      background-image: linear-gradient(
+        to right,
+        rgba(90, 168, 255, 0.28) var(--pct, 0%),
+        transparent var(--pct, 0%)
+      );
+    }
+    .catalog-picker-list li:hover,
+    .catalog-picker-list li.is-active {
+      box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0.05);
+    }
+    .catalog-picker-list li[aria-selected="true"] {
+      box-shadow: inset 0 0 0 1px #5aa8ff;
+    }
+    .catalog-picker-list li[aria-selected="true"].is-active,
+    .catalog-picker-list li[aria-selected="true"]:hover {
+      box-shadow: inset 0 0 0 1px #5aa8ff, inset 0 0 0 999px rgba(255, 255, 255, 0.05);
+    }
+    .catalog-meta { opacity: 0.7; margin: 0; }
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(16, 2.1em);
+      width: max-content;
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS", monospace;
+      font-size: 18px;
+      line-height: 1.2;
+      background: #1c1c1c;
+      padding: 0.6rem;
+      border-radius: 8px;
+    }
+    .catalog-grid span {
+      box-sizing: border-box;
+      width: 2.1em;
+      height: 1.35em;
+      text-align: center;
+      border: 1px solid #2a2a2a;
+      overflow: hidden;
+    }
+    .catalog-grid span.missing {
+      opacity: 0.28;
+      background: #2a1515;
+    }
   </style>
 </head>
 <body>
@@ -217,6 +331,23 @@
 │⓰⓱⓲⓳⓴⓵⓶⓷│
 │⓸⓹⓺⓻⓼⓽⓾⓿│
 └────────────────┘</pre>
+
+  <section class="catalog" id="catalog">
+    <h2>字符图鉴</h2>
+    <p>按 Unicode <code>Blocks.txt</code> 官方区块列出该区<strong>全部已分配码位</strong>（缺字偏暗）。区块列表由页面画出，行背景宽度等于该区覆盖率。格子固定 2 格宽。一页 512 字（16×32），多则翻页。覆盖率低于 5% 且超过一页的区块只列已收录。</p>
+    <div class="catalog-toolbar">
+      <div class="catalog-picker" id="catalog-picker">
+        <button type="button" class="catalog-picker-toggle" id="catalog-block" aria-haspopup="listbox" aria-expanded="false" aria-controls="catalog-block-list">选择区块</button>
+        <ul class="catalog-picker-list" id="catalog-block-list" role="listbox" hidden></ul>
+      </div>
+      <input id="catalog-filter" type="search" placeholder="筛选区块，例如 制表符、Box Drawing 或 2500" />
+      <button type="button" id="catalog-prev">上一页</button>
+      <span id="catalog-page-label"></span>
+      <button type="button" id="catalog-next">下一页</button>
+    </div>
+    <p class="catalog-meta" id="catalog-meta"></p>
+    <div class="catalog-grid" id="catalog-grid"></div>
+  </section>
 
   <h2>表情画风</h2>
   <p>两套配套字体格子相同（一枚 1 em / 2 格），画风不同。本页正文默认回落微软 Fluent；这里用 Tab 对照同一串彩色 emoji。</p>
@@ -469,6 +600,29 @@
       );
     }
 
+    function renderBlockTable(rows) {
+      const headers = ["中文名称", "区块", "已覆盖 / 集合", "覆盖率", "验收", "范围"];
+      const head = headers.map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("");
+      const body = rows.map(function (row) {
+        const pct = Number(row.percentValue) || 0;
+        return (
+          "<tr style=\"--pct:" + pct + "%\">" +
+          "<td>" + esc(row.nameZh || row.name) + "</td>" +
+          "<td>" + esc(row.name) + "</td>" +
+          "<td class=\"num\">" + esc(row.mapped + "/" + row.total) + "</td>" +
+          "<td class=\"num\">" + esc(row.percent) + "</td>" +
+          "<td class=\"mark\">" + (row.accepted ? "✅" : "") + "</td>" +
+          "<td>" + esc(row.note) + "</td>" +
+          "</tr>"
+        );
+      }).join("");
+      return (
+        "<h2>Unicode 区块</h2>" +
+        "<table class=\"coverage\"><thead><tr>" + head + "</tr></thead><tbody>" +
+        body + "</tbody></table>"
+      );
+    }
+
     const root = document.getElementById("coverage");
     const data = window.XIAOHEIZI_COVERAGE;
     if (!data) {
@@ -480,7 +634,252 @@
         renderTable("总览", ["项目", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.overview) +
         renderTable("CJK", ["集合", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.cjk) +
         renderTable("Unicode 区段", ["区段", "已覆盖 / 集合", "覆盖率", "验收", "口径"], data.unicode) +
+        "<p class=\"meta\">口径为 Unicode Blocks.txt。中文名称为通行译法，不是 Unicode 官方名称。可用输入框筛选中文、英文或码位范围。</p>" +
+        "<input id=\"block-filter\" type=\"search\" placeholder=\"筛选区块，例如 制表符、Box Drawing 或 2500\" />" +
+        renderBlockTable(data.blocks || []) +
         (data.emoji ? renderTable("表情", ["集合", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.emoji) : "");
+      const filter = document.getElementById("block-filter");
+      const tables = root.querySelectorAll("table.coverage");
+      let blockTable = null;
+      tables.forEach(function (table) {
+        const first = table.querySelector("th");
+        if (first && first.textContent === "中文名称") blockTable = table;
+      });
+      if (filter && blockTable && blockTable.tBodies && blockTable.tBodies[0]) {
+        const rows = Array.prototype.slice.call(blockTable.tBodies[0].rows);
+        filter.addEventListener("input", function () {
+          const q = filter.value.trim().toLowerCase();
+          rows.forEach(function (tr) {
+            tr.hidden = q !== "" && tr.textContent.toLowerCase().indexOf(q) < 0;
+          });
+        });
+      }
+      renderCatalog(data.catalog);
+    }
+
+    function renderCatalog(catalog) {
+      if (!catalog || !catalog.blocks || !catalog.blocks.length) return;
+      const picker = document.getElementById("catalog-picker");
+      const toggle = document.getElementById("catalog-block");
+      const list = document.getElementById("catalog-block-list");
+      const grid = document.getElementById("catalog-grid");
+      const meta = document.getElementById("catalog-meta");
+      const label = document.getElementById("catalog-page-label");
+      const prev = document.getElementById("catalog-prev");
+      const next = document.getElementById("catalog-next");
+      if (!picker || !toggle || !list || !grid) return;
+      const pageSize = catalog.pageSize || 512;
+      const cols = catalog.cols || 16;
+      const filterInput = document.getElementById("catalog-filter");
+      grid.style.gridTemplateColumns = "repeat(" + cols + ", 2.1em)";
+      let visible = catalog.blocks.map(function (_, index) { return index; });
+      let selected = 0;
+      let page = 0;
+      let open = false;
+      let activePos = 0;
+
+      function coveragePct(block) {
+        if (!block || !block.assigned) return 0;
+        return 100 * block.mapped / block.assigned;
+      }
+
+      function labelFor(block) {
+        return (block.nameZh || block.name) + " · " + block.name + " · " + block.range + " · " + block.mapped + "/" + block.assigned;
+      }
+
+      function preferIndex() {
+        const found = catalog.blocks.findIndex(function (block) {
+          return block.name === "Box Drawing";
+        });
+        return found >= 0 ? found : 0;
+      }
+
+      function syncToggle() {
+        const block = selected >= 0 ? catalog.blocks[selected] : null;
+        toggle.textContent = block ? labelFor(block) : "没有匹配的区块";
+        toggle.style.setProperty("--pct", coveragePct(block) + "%");
+        toggle.disabled = !block;
+      }
+
+      function highlightActive() {
+        Array.prototype.forEach.call(list.children, function (item, pos) {
+          item.classList.toggle("is-active", pos === activePos);
+        });
+      }
+
+      function fillList() {
+        list.replaceChildren();
+        visible.forEach(function (index, pos) {
+          const block = catalog.blocks[index];
+          const item = document.createElement("li");
+          item.setAttribute("role", "option");
+          item.dataset.index = String(index);
+          item.style.setProperty("--pct", coveragePct(block) + "%");
+          item.textContent = labelFor(block);
+          item.setAttribute("aria-selected", index === selected ? "true" : "false");
+          item.addEventListener("mousedown", function (ev) { ev.preventDefault(); });
+          item.addEventListener("click", function () {
+            choose(index);
+          });
+          item.addEventListener("mouseenter", function () {
+            activePos = pos;
+            highlightActive();
+          });
+          list.appendChild(item);
+        });
+        const pos = visible.indexOf(selected);
+        activePos = pos >= 0 ? pos : 0;
+        highlightActive();
+      }
+
+      function setOpen(next) {
+        open = next && visible.length > 0;
+        list.hidden = !open;
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open) {
+          const pos = visible.indexOf(selected);
+          activePos = pos >= 0 ? pos : 0;
+          highlightActive();
+          scrollActive();
+        }
+      }
+
+      function choose(index) {
+        selected = index;
+        page = 0;
+        setOpen(false);
+        fillList();
+        syncToggle();
+        draw();
+      }
+
+      function applyFilter() {
+        const q = (filterInput && filterInput.value || "").trim().toLowerCase();
+        visible = [];
+        catalog.blocks.forEach(function (block, index) {
+          const hay = ((block.nameZh || "") + " " + block.name + " " + block.range).toLowerCase();
+          if (q === "" || hay.indexOf(q) >= 0) visible.push(index);
+        });
+        if (visible.indexOf(selected) < 0) {
+          selected = visible.length ? visible[0] : -1;
+        }
+        fillList();
+        syncToggle();
+        page = 0;
+        if (open) setOpen(true);
+        draw();
+      }
+
+      function draw() {
+        if (selected < 0) {
+          grid.replaceChildren();
+          meta.textContent = "没有匹配的区块";
+          label.textContent = "0 / 0 页";
+          prev.disabled = true;
+          next.disabled = true;
+          return;
+        }
+        const block = catalog.blocks[selected];
+        const chars = Array.from(block.chars || "");
+        const miss = {};
+        (block.missing || []).forEach(function (cp) { miss[cp] = true; });
+        const pages = Math.max(1, Math.ceil(chars.length / pageSize) || 1);
+        if (page >= pages) page = pages - 1;
+        if (page < 0) page = 0;
+        const slice = chars.slice(page * pageSize, page * pageSize + pageSize);
+        grid.replaceChildren();
+        slice.forEach(function (ch) {
+          const span = document.createElement("span");
+          span.textContent = ch;
+          const cp = ch.codePointAt(0);
+          span.title = "U+" + cp.toString(16).toUpperCase().padStart(4, "0");
+          if (miss[cp]) span.className = "missing";
+          grid.appendChild(span);
+        });
+        meta.textContent = (block.nameZh && block.nameZh !== block.name ? block.nameZh + " · " : "") +
+          (block.sparse
+          ? "仅已收录（本区覆盖率低）· " + block.mapped + " / " + block.assigned
+          : "已分配 " + block.assigned + " · 已收录 " + block.mapped);
+        label.textContent = (page + 1) + " / " + pages + " 页";
+        prev.disabled = page <= 0;
+        next.disabled = page >= pages - 1;
+      }
+
+      function scrollActive() {
+        const item = list.children[activePos];
+        if (item && item.scrollIntoView) item.scrollIntoView({ block: "nearest" });
+      }
+
+      toggle.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        setOpen(!open);
+      });
+      toggle.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape") {
+          ev.preventDefault();
+          setOpen(false);
+          return;
+        }
+        if (ev.key === "ArrowDown") {
+          ev.preventDefault();
+          if (!open) {
+            setOpen(true);
+            return;
+          }
+          if (activePos < visible.length - 1) {
+            activePos += 1;
+            highlightActive();
+            scrollActive();
+          }
+          return;
+        }
+        if (ev.key === "ArrowUp") {
+          ev.preventDefault();
+          if (!open) {
+            setOpen(true);
+            return;
+          }
+          if (activePos > 0) {
+            activePos -= 1;
+            highlightActive();
+            scrollActive();
+          }
+          return;
+        }
+        if (ev.key === "Home" && open) {
+          ev.preventDefault();
+          activePos = 0;
+          highlightActive();
+          scrollActive();
+          return;
+        }
+        if (ev.key === "End" && open) {
+          ev.preventDefault();
+          activePos = Math.max(0, visible.length - 1);
+          highlightActive();
+          scrollActive();
+          return;
+        }
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          if (!open) {
+            setOpen(true);
+            return;
+          }
+          const index = visible[activePos];
+          if (index !== undefined) choose(index);
+        }
+      });
+      document.addEventListener("click", function (ev) {
+        if (!picker.contains(ev.target)) setOpen(false);
+      });
+      prev.addEventListener("click", function () { page -= 1; draw(); });
+      next.addEventListener("click", function () { page += 1; draw(); });
+      if (filterInput) filterInput.addEventListener("input", applyFilter);
+      selected = preferIndex();
+      fillList();
+      syncToggle();
+      draw();
     }
   </script>
 </body>

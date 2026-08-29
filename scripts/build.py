@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VENDOR = ROOT / "vendor"
 DIST = ROOT / "dist"
 PREVIEW_HTML = ROOT / "preview" / "preview.html"
+BLOCK_ZH_PATH = Path(__file__).resolve().parent / "unicode-block-zh.json"
 
 SARASA = VENDOR / "sarasa-fixed-sc" / "SarasaFixedSC-Regular.ttf"
 JBM = VENDOR / "jetbrains-mono" / "fonts" / "ttf" / "JetBrainsMonoNL-Regular.ttf"
@@ -75,6 +76,22 @@ REQUIRED_BLOCKS = (
     ("CJK Unified Ideographs", 0x4E00, 0x9FFF),
     ("CJK Symbols and Punctuation", 0x3000, 0x303F),
     ("Halfwidth and Fullwidth Forms", 0xFF00, 0xFFEF),
+)
+
+# 规范 §4：图鉴与覆盖率共用 Unicode Blocks.txt。一页 16 列 × 32 行。
+CATALOG_COLS = 16
+CATALOG_ROWS = 32
+CATALOG_PAGE_SIZE = CATALOG_COLS * CATALOG_ROWS
+BLOCK_SKIP_NAMES = frozenset(
+    {
+        "No_Block",
+        "High Surrogates",
+        "High Private Use Surrogates",
+        "Low Surrogates",
+        "Private Use Area",
+        "Supplementary Private Use Area-A",
+        "Supplementary Private Use Area-B",
+    }
 )
 
 # 名称里的 em：按排版长度（1.0 = 一个汉字宽），不压成 UAX #11 的半格
@@ -208,6 +225,85 @@ def assigned_set(lo: int, hi: int) -> set[int]:
 
 
 @cache
+def unicode_block_defs() -> tuple[tuple[str, int, int], ...]:
+    """Unicode Blocks.txt 官方区块，去掉代理区、私用区与空隙。"""
+    from fontTools.unicodedata.Blocks import RANGES, VALUES
+
+    out: list[tuple[str, int, int]] = []
+    for i, start in enumerate(RANGES):
+        name = VALUES[i]
+        if name in BLOCK_SKIP_NAMES:
+            continue
+        end = (RANGES[i + 1] - 1) if i + 1 < len(RANGES) else 0x10FFFF
+        out.append((name, start, end))
+    return tuple(out)
+
+
+@cache
+def block_zh_map() -> dict[str, str]:
+    """规范 §4.3：英文区块名 → 简体中文。缺译名回退英文。"""
+    if not BLOCK_ZH_PATH.exists():
+        return {}
+    data = json.loads(BLOCK_ZH_PATH.read_text(encoding="utf-8"))
+    return {str(k): str(v) for k, v in data.items()}
+
+
+def block_zh_name(english: str) -> str:
+    return block_zh_map().get(english) or english
+
+
+def unicode_block_coverage(
+    cmap: dict[int, str],
+    hmtx=None,
+    sources: dict[str, str] | None = None,
+    upem: int | None = None,
+) -> list[dict]:
+    """规范 §4.3：每个官方区块一行。本版本已分配为 0 的块不出现。"""
+    rows: list[dict] = []
+    for name, lo, hi in unicode_block_defs():
+        assigned = 0
+        mapped = 0
+        cells: set[str] = set()
+        origin: set[str] = set()
+        for cp in range(lo, hi + 1):
+            if not _is_assigned(cp):
+                continue
+            assigned += 1
+            if cp not in cmap:
+                continue
+            mapped += 1
+            if hmtx is None or upem is None:
+                continue
+            adv = hmtx[cmap[cp]][0]
+            cell = expected_cells(cp, adv, upem)
+            if cell is None:
+                cells.add("?")
+            elif cell < 0:
+                cells.add("~")
+            else:
+                cells.add(str(cell))
+            if sources is not None:
+                origin.add(sources.get(f"U+{cp:04X}", "sarasa"))
+        if assigned == 0:
+            continue
+        row = pack_count_row(name, f"U+{lo:04X}–{hi:04X}", mapped, assigned)
+        row["nameZh"] = block_zh_name(name)
+        if hmtx is not None:
+            if not cells:
+                grid = "—"
+            elif cells <= {"1"}:
+                grid = "1"
+            elif cells <= {"2"}:
+                grid = "2"
+            else:
+                grid = "混"
+            row["grid"] = grid
+            row["source"] = "+".join(sorted(origin)) if origin else "—"
+        rows.append(row)
+    return rows
+
+
+@cache
 def gb2312_hanzi() -> frozenset[int]:
     """GB/T 2312 汉字：EUC-CN 区 16–87，共 6763 字。"""
     out: set[int] = set()
@@ -317,8 +413,13 @@ def acceptance_mark(row: dict) -> str:
     return "✅" if row.get("accepted") else ""
 
 
-def product_coverage(cmap: dict[int, str]) -> dict:
-    """规范 §4.2 产品向分集表。"""
+def product_coverage(
+    cmap: dict[int, str],
+    hmtx=None,
+    sources: dict[str, str] | None = None,
+    upem: int | None = None,
+) -> dict:
+    """规范 §4.2 产品向分集表 + §4.3 官方区块全表。"""
     bmp_mapped = sum(1 for cp in cmap if cp <= 0xFFFF)
     supp_mapped = sum(1 for cp in cmap if cp >= 0x10000)
     supp_total = assigned_count(0x10000, 0x10FFFD)
@@ -403,6 +504,7 @@ def product_coverage(cmap: dict[int, str]) -> dict:
         ],
         "cjk": [pack_coverage_row(cmap, n, note, u) for n, note, u in cjk],
         "unicode": [pack_coverage_row(cmap, n, note, u) for n, note, u in unicode_rows],
+        "blocks": unicode_block_coverage(cmap, hmtx=hmtx, sources=sources, upem=upem),
     }
 
 
@@ -503,6 +605,18 @@ def coverage_markdown_tables(product: dict) -> list[str]:
     for row in product["unicode"]:
         lines.append(
             f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {acceptance_mark(row)} | {row['note']} |"
+        )
+    lines += [
+        "",
+        "## Unicode 区块",
+        "",
+        "| 中文名称 | 区块 | 范围 | 该版本已分配 | 已覆盖 | 覆盖率 | 验收 | 格子 | 来源 |",
+        "|----------|------|------|--------------|--------|--------|------|------|------|",
+    ]
+    for row in product.get("blocks") or []:
+        lines.append(
+            f"| {row.get('nameZh', row['name'])} | {row['name']} | {row['note']} | {row['total']} | {row['mapped']} | "
+            f"{row['percent']} | {acceptance_mark(row)} | {row.get('grid', '—')} | {row.get('source', '—')} |"
         )
     if product.get("emoji"):
         lines += [
@@ -1550,49 +1664,6 @@ def write_coverage(
         if unicodedata.category(chr(cp)) != "Cn":
             assigned += 1
 
-    block_rows = []
-    for title, lo, hi in REQUIRED_BLOCKS:
-        in_font = [cp for cp in range(lo, hi + 1) if cp in cmap]
-        assigned_blk = [
-            cp
-            for cp in range(lo, hi + 1)
-            if unicodedata.category(chr(cp)) != "Cn"
-        ]
-        cells = set()
-        origin = set()
-        for cp in in_font:
-            adv = hmtx[cmap[cp]][0]
-            c = expected_cells(cp, adv, upem)
-            if c is None:
-                cells.add("?")
-            elif c < 0:
-                cells.add("~")
-            else:
-                cells.add(str(c))
-            origin.add(sources.get(f"U+{cp:04X}", "sarasa"))
-        if cells <= {"1"}:
-            grid = "1"
-        elif cells <= {"2"}:
-            grid = "2"
-        elif cells <= {"1", "2"}:
-            grid = "混"
-        else:
-            grid = "混"
-        cov = 100.0 * len(in_font) / len(assigned_blk) if assigned_blk else 0.0
-        accepted = bool(assigned_blk) and len(in_font) == len(assigned_blk)
-        block_rows.append(
-            {
-                "block": title,
-                "range": f"U+{lo:04X}–U+{hi:04X}",
-                "assigned": len(assigned_blk),
-                "mapped": len(in_font),
-                "percent": round(cov, 2),
-                "accepted": accepted,
-                "grid": grid,
-                "source": "+".join(sorted(origin)) if origin else "—",
-            }
-        )
-
     summary = {
         "unicodeVersion": unicodedata.unidata_version,
         "fontPostScriptName": PS_NAME,
@@ -1608,8 +1679,12 @@ def write_coverage(
         },
     }
     DIST.mkdir(parents=True, exist_ok=True)
-    product = product_coverage(cmap)
+    product = product_coverage(cmap, hmtx=hmtx, sources=sources, upem=upem)
     product["emoji"] = emoji_coverage(cmap, load_emoji_stats(emoji_ttfs))
+    have = {row["name"] for row in product["blocks"]}
+    missing_req = [name for name, _lo, _hi in REQUIRED_BLOCKS if name not in have]
+    if missing_req:
+        raise SystemExit("必测区块未出现在覆盖表：" + ", ".join(missing_req))
     summary["productCoverage"] = product
     (DIST / "coverage-summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -1622,19 +1697,44 @@ def write_coverage(
         f"- 宽度违规 {len(violations)}（发布时必须为 0）",
         "",
         *coverage_markdown_tables(product),
-        "",
-        "## Unicode 分块（必测）",
-        "",
-        "| 区块 | 范围 | 该版本已分配 | 已覆盖 | 覆盖率 | 验收 | 格子 | 来源 |",
-        "|------|------|--------------|--------|--------|------|------|------|",
     ]
-    for row in block_rows:
-        lines.append(
-            f"| {row['block']} | {row['range']} | {row['assigned']} | {row['mapped']} | "
-            f"{row['percent']}% | {acceptance_mark(row)} | {row['grid']} | {row['source']} |"
-        )
     (DIST / "coverage-blocks.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return violations
+
+
+def build_glyph_catalog(cmap: dict[int, str]) -> tuple[dict, list[int]]:
+    """规范 §4：图鉴数据。覆盖率低且超过一页的区块只列已收录。"""
+    blocks: list[dict] = []
+    subset: list[int] = []
+    for name, lo, hi in unicode_block_defs():
+        assigned = [cp for cp in range(lo, hi + 1) if _is_assigned(cp)]
+        if not assigned:
+            continue
+        mapped = [cp for cp in assigned if cp in cmap]
+        total = len(assigned)
+        got = len(mapped)
+        sparse = total > CATALOG_PAGE_SIZE and total > 0 and got / total < 0.05
+        shown = mapped if sparse else assigned
+        missing = [] if sparse else [cp for cp in shown if cp not in cmap]
+        blocks.append(
+            {
+                "name": name,
+                "nameZh": block_zh_name(name),
+                "range": f"U+{lo:04X}–{hi:04X}",
+                "assigned": total,
+                "mapped": got,
+                "sparse": sparse,
+                "chars": "".join(chr(cp) for cp in shown),
+                "missing": missing,
+            }
+        )
+        subset.extend(mapped)
+    return {
+        "pageSize": CATALOG_PAGE_SIZE,
+        "cols": CATALOG_COLS,
+        "rows": CATALOG_ROWS,
+        "blocks": blocks,
+    }, subset
 
 
 def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
@@ -1650,12 +1750,16 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     cmap = tiny.getBestCmap()
     product = product_coverage(cmap)
     product["emoji"] = emoji_coverage(cmap, load_emoji_stats(emoji_ttfs))
+    catalog, catalog_cps = build_glyph_catalog(cmap)
+    product["catalog"] = catalog
     payload = {
         "unicodeVersion": product["unicodeVersion"],
         "overview": product["overview"],
         "cjk": product["cjk"],
         "unicode": product["unicode"],
+        "blocks": product["blocks"],
         "emoji": product["emoji"],
+        "catalog": product["catalog"],
     }
     js = (
         "/* 由 scripts/build.py 生成，请勿手改 */\n"
@@ -1672,20 +1776,7 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     sub = Subsetter(options=opt)
     sub.populate(
         text=html + js,
-        unicodes=list(range(0x20, 0x7F))
-        + [0xA0]
-        + list(range(0x2000, 0x2070))
-        + list(range(0x2190, 0x2200))
-        + list(range(0x2300, 0x2400))
-        + list(range(0x2500, 0x2600))
-        + list(range(0x2600, 0x27C0))
-        + list(range(0x2900, 0x2980))
-        + list(range(0x2B00, 0x2C00))
-        + [0x2E3A, 0x2E3B, 0x3000, 0x3030, 0x303D, 0x3297, 0x3299]
-        + list(range(0x2460, 0x2500))
-        + list(range(0x3200, 0x3300))
-        + list(range(0xFF00, 0xFFEF))
-        + list(range(0x1F170, 0x1F240)),
+        unicodes=list(range(0x20, 0x7F)) + [0xA0] + catalog_cps,
     )
     sub.subset(tiny)
     sanitize_for_ots(tiny)
