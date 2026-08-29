@@ -46,12 +46,12 @@ EMOJI_VARIANTS = (
     },
     {
         "src": FLUENT_EMOJI,
-        "family_en": "Xiaoheizi Emoji MS",
-        "family_zh": "小黑字表情微软",
-        "ps": "XiaoheiziEmojiMS-Regular",
-        "full_en": "Xiaoheizi Emoji MS Regular",
-        "out_name": "XiaoheiziEmojiMS-Regular.ttf",
-        "preview_name": "preview-emoji-ms.ttf",
+        "family_en": "Xiaoheizi Emoji 3D",
+        "family_zh": "小黑字表情立体",
+        "ps": "XiaoheiziEmoji3D-Regular",
+        "full_en": "Xiaoheizi Emoji 3D Regular",
+        "out_name": "XiaoheiziEmoji3D-Regular.ttf",
+        "preview_name": "preview-emoji-3d.ttf",
         "flags_from_noto": True,
         "copyright": "Copyright 2026 小黑字. Artwork: Microsoft Fluent Emoji (MIT); flag glyphs from Noto Emoji (Google LLC, SIL OFL 1.1). Font compilation portions: tetunori/fluent-emoji-webfont (MIT).",
         "license_notice": "Font names under SIL OFL 1.1. Fluent Emoji artwork under MIT. Flag portions from Noto Emoji under SIL OFL 1.1. See license files in dist/.",
@@ -584,18 +584,18 @@ def emoji_coverage(
         )
     ms_cmap = None
     for label, cmap, _nliga in emoji_stats:
-        if "微软" in label:
+        if "立体" in label:
             ms_cmap = cmap
             break
     if ms_cmap is None and emoji_stats:
         ms_cmap = emoji_stats[-1][1]
     if ms_cmap is not None:
         blocks = [
-            ("杂项符号及象形文字 · 微软", "U+1F300–1F5FF", 0x1F300, 0x1F5FF),
-            ("表情符号 · 微软", "U+1F600–1F64F Emoticons", 0x1F600, 0x1F64F),
-            ("交通和地图符号 · 微软", "U+1F680–1F6FF", 0x1F680, 0x1F6FF),
-            ("补充符号和象形文字 · 微软", "U+1F900–1F9FF", 0x1F900, 0x1F9FF),
-            ("符号和象形文字扩展 A · 微软", "U+1FA70–1FAFF", 0x1FA70, 0x1FAFF),
+            ("杂项符号及象形文字 · 立体", "U+1F300–1F5FF", 0x1F300, 0x1F5FF),
+            ("表情符号 · 立体", "U+1F600–1F64F Emoticons", 0x1F600, 0x1F64F),
+            ("交通和地图符号 · 立体", "U+1F680–1F6FF", 0x1F680, 0x1F6FF),
+            ("补充符号和象形文字 · 立体", "U+1F900–1F9FF", 0x1F900, 0x1F9FF),
+            ("符号和象形文字扩展 A · 立体", "U+1FA70–1FAFF", 0x1FA70, 0x1FAFF),
         ]
         for name, note, lo, hi in blocks:
             rows.append(pack_coverage_row(ms_cmap, name, note, assigned_set(lo, hi)))
@@ -1366,7 +1366,7 @@ def emoji_variant_needs_rebuild(variant: dict, path: Path) -> bool:
         # 数字不应出现在表情 cmap；⚠ 这类可覆盖符号必须保留
         if 0x30 in cmap or 0x26A0 not in cmap:
             return True
-        # 两套配套字体都必须有区域指示符（微软套由 Noto 补）
+        # 两套配套字体都必须有区域指示符（立体套由 Noto 补）
         if 0x1F1E8 not in cmap:
             return True
         if variant.get("flags_from_noto"):

@@ -9,12 +9,12 @@
 | 小黑字 | 品牌 / 字厂名 |
 | 小黑字等宽 | 中英等宽本体 |
 | `Xiaoheizi Mono` | 等宽本体的 CSS 族名 |
-| 小黑字表情 | 彩色 emoji（Noto） |
-| `Xiaoheizi Emoji` | Noto 配套的 CSS 族名 |
-| 小黑字表情微软 | 彩色 emoji（Fluent / 微软画风） |
-| `Xiaoheizi Emoji MS` | Fluent 配套的 CSS 族名 |
+| 小黑字表情 | 彩色 emoji，扁、色块（上游 Noto；族名不写厂商） |
+| `Xiaoheizi Emoji` | 扁平配套的 CSS 族名 |
+| 小黑字表情立体 | 彩色 emoji，立体画风（上游 Fluent；族名不写厂商） |
+| `Xiaoheizi Emoji 3D` | 立体配套的 CSS 族名 |
 
-衍生字体不使用上游保留名或商标：`Source`、`JetBrains`、`Sarasa`、`更纱`、`Iosevka`、`Noto`、`Fluent`、`Microsoft`。
+衍生字体不使用上游保留名或商标：`Source`、`JetBrains`、`Sarasa`、`更纱`、`Iosevka`、`Noto`、`Fluent`、`Microsoft`、`微软`、`MS`、`Google`、`谷歌`。
 
 ## 文档
 
