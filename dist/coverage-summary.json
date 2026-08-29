@@ -1359,7 +1359,7 @@
         "accepted": false,
         "nameZh": "杂项技术用字符",
         "grid": "混",
-        "source": "sarasa"
+        "source": "sarasa+source-han-sans"
       },
       {
         "name": "Control Pictures",
@@ -1430,8 +1430,8 @@
         "percentValue": 100.0,
         "accepted": true,
         "nameZh": "几何图形",
-        "grid": "1",
-        "source": "sarasa"
+        "grid": "混",
+        "source": "sarasa+source-han-sans"
       },
       {
         "name": "Miscellaneous Symbols",
@@ -1442,8 +1442,8 @@
         "percentValue": 42.19,
         "accepted": false,
         "nameZh": "杂项符号",
-        "grid": "1",
-        "source": "sarasa"
+        "grid": "混",
+        "source": "sarasa+source-han-sans"
       },
       {
         "name": "Dingbats",
@@ -1454,8 +1454,8 @@
         "percentValue": 53.65,
         "accepted": false,
         "nameZh": "印刷符号",
-        "grid": "1",
-        "source": "sarasa"
+        "grid": "混",
+        "source": "sarasa+source-han-sans"
       },
       {
         "name": "Miscellaneous Mathematical Symbols-A",
@@ -3974,7 +3974,7 @@
         "percentValue": 87.0,
         "accepted": false,
         "nameZh": "带圈字母数字补充",
-        "grid": "1",
+        "grid": "2",
         "source": "sarasa"
       },
       {
@@ -3986,7 +3986,7 @@
         "percentValue": 90.62,
         "accepted": false,
         "nameZh": "带圈表意文字补充",
-        "grid": "混",
+        "grid": "2",
         "source": "sarasa"
       },
       {

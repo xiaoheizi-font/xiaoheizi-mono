@@ -144,15 +144,15 @@
 | 数字形式 | Number Forms | U+2150–218F | 60 | 60 | 100.00% | ✅ | 1 | sarasa |
 | 箭头 | Arrows | U+2190–21FF | 112 | 112 | 100.00% | ✅ | 1 | jetbrains-mono+sarasa |
 | 数学运算符 | Mathematical Operators | U+2200–22FF | 256 | 256 | 100.00% | ✅ | 1 | sarasa |
-| 杂项技术用字符 | Miscellaneous Technical | U+2300–23FF | 256 | 217 | 84.77% |  | 混 | sarasa |
+| 杂项技术用字符 | Miscellaneous Technical | U+2300–23FF | 256 | 217 | 84.77% |  | 混 | sarasa+source-han-sans |
 | 控制图符 | Control Pictures | U+2400–243F | 39 | 39 | 100.00% | ✅ | 1 | sarasa |
 | 光学字符识别 | Optical Character Recognition | U+2440–245F | 11 | 6 | 54.55% |  | 1 | sarasa |
 | 带圈字母数字 | Enclosed Alphanumerics | U+2460–24FF | 160 | 160 | 100.00% | ✅ | 2 | source-han-sans |
 | 制表符 | Box Drawing | U+2500–257F | 128 | 128 | 100.00% | ✅ | 1 | jetbrains-mono |
 | 方块元素 | Block Elements | U+2580–259F | 32 | 32 | 100.00% | ✅ | 1 | jetbrains-mono |
-| 几何图形 | Geometric Shapes | U+25A0–25FF | 96 | 96 | 100.00% | ✅ | 1 | sarasa |
-| 杂项符号 | Miscellaneous Symbols | U+2600–26FF | 256 | 108 | 42.19% |  | 1 | sarasa |
-| 印刷符号 | Dingbats | U+2700–27BF | 192 | 103 | 53.65% |  | 1 | sarasa |
+| 几何图形 | Geometric Shapes | U+25A0–25FF | 96 | 96 | 100.00% | ✅ | 混 | sarasa+source-han-sans |
+| 杂项符号 | Miscellaneous Symbols | U+2600–26FF | 256 | 108 | 42.19% |  | 混 | sarasa+source-han-sans |
+| 印刷符号 | Dingbats | U+2700–27BF | 192 | 103 | 53.65% |  | 混 | sarasa+source-han-sans |
 | 各式数学符号甲 | Miscellaneous Mathematical Symbols-A | U+27C0–27EF | 48 | 26 | 54.17% |  | 1 | sarasa |
 | 增补箭头甲 | Supplemental Arrows-A | U+27F0–27FF | 16 | 5 | 31.25% |  | 1 | sarasa |
 | 布莱叶盲文点字 | Braille Patterns | U+2800–28FF | 256 | 256 | 100.00% | ✅ | 1 | sarasa |
@@ -362,8 +362,8 @@
 | 麻将牌 | Mahjong Tiles | U+1F000–1F02F | 44 | 0 | 0.00% |  | — | — |
 | 多米诺牌 | Domino Tiles | U+1F030–1F09F | 100 | 0 | 0.00% |  | — | — |
 | 扑克 | Playing Cards | U+1F0A0–1F0FF | 82 | 82 | 100.00% | ✅ | 1 | sarasa |
-| 带圈字母数字补充 | Enclosed Alphanumeric Supplement | U+1F100–1F1FF | 200 | 174 | 87.00% |  | 1 | sarasa |
-| 带圈表意文字补充 | Enclosed Ideographic Supplement | U+1F200–1F2FF | 64 | 58 | 90.62% |  | 混 | sarasa |
+| 带圈字母数字补充 | Enclosed Alphanumeric Supplement | U+1F100–1F1FF | 200 | 174 | 87.00% |  | 2 | sarasa |
+| 带圈表意文字补充 | Enclosed Ideographic Supplement | U+1F200–1F2FF | 64 | 58 | 90.62% |  | 2 | sarasa |
 | 各式符号及象形 | Miscellaneous Symbols and Pictographs | U+1F300–1F5FF | 768 | 0 | 0.00% |  | — | — |
 | 表情 | Emoticons | U+1F600–1F64F | 80 | 0 | 0.00% |  | — | — |
 | 装饰什锦 | Ornamental Dingbats | U+1F650–1F67F | 48 | 0 | 0.00% |  | — | — |

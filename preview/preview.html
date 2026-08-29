@@ -226,11 +226,26 @@
       opacity: 0.28;
       background: #2a1515;
     }
+    .catalog-grid.stack-ms {
+      font-family: "Xiaoheizi Emoji MS", "Xiaoheizi Mono", monospace;
+    }
+    .catalog-grid.stack-noto {
+      font-family: "Xiaoheizi Emoji", "Xiaoheizi Mono", monospace;
+    }
+    .catalog-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+    .catalog-stack button[aria-pressed="true"] {
+      border-color: #5aa8ff;
+      color: #eee;
+    }
   </style>
 </head>
 <body>
   <h1>小黑字等宽</h1>
-  <p>标题与下面预览必须是同一套字。汉字应是思源/更纱黑体，西文是 JetBrains Mono。彩色 emoji 有两套配套字体，都按 1 em（两格）对齐。本页默认 <code>font-family</code> 等宽在前：<code>✅⚡😀🃏</code> 走 Regular <strong>黑白半格</strong>，不剔除；把表情字体写到前面即可覆盖成彩色全宽。<code>⚠★❤☀✓✔</code> 无默认 emoji 表现，Regular 也是半格。见下方 Tab。</p>
+  <p>标题与下面预览必须是同一套字。汉字应是思源/更纱黑体，西文是 JetBrains Mono。彩色 emoji 有两套配套字体，都按 1 em（两格）对齐。本页默认 <code>font-family</code> 等宽在前。例外表里思源有的符号（如 <code>⚠★</code>）以及拉宽的 <code>🈁🄀</code> 在 Regular 里已是 1 em；<code>✅⚡🃏</code> 未入例外表，Regular 仍是黑白半格。图鉴可叠加表情对照。见下方 Tab。</p>
   <pre>
 ┌────────┬────────┐
 │id      │值      │
@@ -334,7 +349,7 @@
 
   <section class="catalog" id="catalog">
     <h2>字符图鉴</h2>
-    <p>按 Unicode <code>Blocks.txt</code> 官方区块列出该区<strong>全部已分配码位</strong>（缺字偏暗）。区块列表由页面画出，行背景宽度等于该区覆盖率。格子固定 2 格宽。一页 512 字（16×32），多则翻页。覆盖率低于 5% 且超过一页的区块只列已收录。</p>
+    <p>按 Unicode <code>Blocks.txt</code> 官方区块列出该区<strong>全部已分配码位</strong>（缺字偏暗）。区块列表由页面画出，行背景宽度等于该区覆盖率。格子固定 2 格宽。一页 512 字（16×32），多则翻页。覆盖率低于 5% 且超过一页的区块只列已收录。右侧可把表情字体叠到前面，对照彩色全宽（不改 Regular 本身）。</p>
     <div class="catalog-toolbar">
       <div class="catalog-picker" id="catalog-picker">
         <button type="button" class="catalog-picker-toggle" id="catalog-block" aria-haspopup="listbox" aria-expanded="false" aria-controls="catalog-block-list">选择区块</button>
@@ -344,6 +359,11 @@
       <button type="button" id="catalog-prev">上一页</button>
       <span id="catalog-page-label"></span>
       <button type="button" id="catalog-next">下一页</button>
+      <div class="catalog-stack" role="group" aria-label="图鉴字体栈">
+        <button type="button" id="catalog-stack-mono" aria-pressed="true">黑白</button>
+        <button type="button" id="catalog-stack-ms" aria-pressed="false">叠加微软</button>
+        <button type="button" id="catalog-stack-noto" aria-pressed="false">叠加谷歌</button>
+      </div>
     </div>
     <p class="catalog-meta" id="catalog-meta"></p>
     <div class="catalog-grid" id="catalog-grid"></div>
@@ -876,6 +896,23 @@
       prev.addEventListener("click", function () { page -= 1; draw(); });
       next.addEventListener("click", function () { page += 1; draw(); });
       if (filterInput) filterInput.addEventListener("input", applyFilter);
+      const stackBtns = [
+        { id: "catalog-stack-mono", cls: "" },
+        { id: "catalog-stack-ms", cls: "stack-ms" },
+        { id: "catalog-stack-noto", cls: "stack-noto" },
+      ];
+      stackBtns.forEach(function (item) {
+        const btn = document.getElementById(item.id);
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          grid.classList.remove("stack-ms", "stack-noto");
+          if (item.cls) grid.classList.add(item.cls);
+          stackBtns.forEach(function (other) {
+            const el = document.getElementById(other.id);
+            if (el) el.setAttribute("aria-pressed", other.id === item.id ? "true" : "false");
+          });
+        });
+      });
       selected = preferIndex();
       fillList();
       syncToggle();

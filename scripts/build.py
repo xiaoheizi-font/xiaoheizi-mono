@@ -112,9 +112,38 @@ NAMED_EM_RATIO = {
 }
 
 # 规范 §2 例外表：带圈字母数字按 1 em（2 格），来源思源，覆盖更纱 Fixed 的半格稿。
-# 其余 Ambiguous 仍 0.5 em，不得扩大。
 ENCLOSED_ALNUM = (0x2460, 0x24FF)
 SOURCE_HAN_PREFIX = "shs."
+# 思源有则覆盖。扑克不覆盖、不拉宽。
+SOURCE_HAN_OVERLAY_RANGES = (
+    (0x2460, 0x24FF),
+    (0x2300, 0x23FF),
+    (0x25A0, 0x25FF),
+    (0x2600, 0x26FF),
+    (0x2700, 0x27BF),
+)
+# 已映射码位直接拉到 1 em（补充带圈全量）。
+STRETCH_TO_EM_RANGES = (
+    (0x1F100, 0x1F1FF),
+)
+# 带圈表意文字补充：此前 W/EP 半宽的 13 个。
+STRETCH_TO_EM_CPS = frozenset(
+    {
+        0x1F201,
+        0x1F21A,
+        0x1F22F,
+        0x1F232,
+        0x1F233,
+        0x1F234,
+        0x1F235,
+        0x1F236,
+        0x1F238,
+        0x1F239,
+        0x1F23A,
+        0x1F250,
+        0x1F251,
+    }
+)
 NOTO_PREFIX = "noto."
 
 SCALE = 500 / 600  # JBM 0.6em → 半个汉字
@@ -1408,16 +1437,17 @@ def strip_ligatures(font: TTFont) -> None:
 
 
 def overlay_source_han(base: TTFont, shs: TTFont) -> dict[str, str]:
-    """规范 §2 例外表：思源按 1 em 画的带圈字母数字覆盖更纱 Fixed 的半格稿。
-
-    思源是 CFF，逐字形转成 TrueType 轮廓拷入；推进保持 1 em，不做横向缩放。
-    """
+    """规范 §2：思源有的例外表码位覆盖更纱/JBM 半格稿。思源是 CFF，转 TrueType 后保持 1 em。"""
     from fontTools.pens.cu2quPen import Cu2QuPen
     from fontTools.pens.ttGlyphPen import TTGlyphPen
 
     src_cmap = shs.getBestCmap()
-    unicodes = assigned_enclosed_set() & set(src_cmap)
-    missing = assigned_enclosed_set() - set(src_cmap)
+    unicodes: set[int] = set()
+    for lo, hi in SOURCE_HAN_OVERLAY_RANGES:
+        for cp in range(lo, hi + 1):
+            if _is_assigned(cp) and cp in src_cmap:
+                unicodes.add(cp)
+    missing = assigned_enclosed_set() - unicodes
     if missing:
         raise SystemExit(f"思源缺少带圈字母数字码位：{sorted(f'U+{c:04X}' for c in missing)}")
     names = collect_names(shs, unicodes)
@@ -1498,19 +1528,48 @@ def assigned_enclosed_set() -> frozenset[int]:
     )
 
 
+@cache
+def source_han_overlay_set() -> frozenset[int]:
+    """思源实际有、且落在 §2 覆盖区的码位。"""
+    font = TTFont(SOURCE_HAN)
+    try:
+        cmap = font.getBestCmap() or {}
+    finally:
+        font.close()
+    out: set[int] = set()
+    for lo, hi in SOURCE_HAN_OVERLAY_RANGES:
+        for cp in range(lo, hi + 1):
+            if _is_assigned(cp) and cp in cmap:
+                out.add(cp)
+    return frozenset(out)
+
+
+def is_fullwidth_exception(cp: int) -> bool:
+    """规范 §2 例外表：1 em。"""
+    if ENCLOSED_ALNUM[0] <= cp <= ENCLOSED_ALNUM[1] and _is_assigned(cp):
+        return True
+    if any(lo <= cp <= hi for lo, hi in STRETCH_TO_EM_RANGES):
+        return True
+    if cp in STRETCH_TO_EM_CPS:
+        return True
+    if cp in source_han_overlay_set():
+        return True
+    return False
+
+
 def expected_advance(cp: int, upem: int) -> int:
-    """名称里的 em 按排版长度；§2 例外表带圈字母数字按 1 em；
-    Regular 的 Emoji_Presentation 按半宽；其余走 UAX #11。
+    """名称里的 em 按排版长度；§2 例外表 1 em；
+    未列入例外的 Emoji_Presentation 按半宽；其余走 UAX #11。
 
     表情字体全宽 1 em，不走本函数。禁止从 Regular 剔除 EP。
     Mn/Me 见 UAX #11 §6.2；Cf/Cc 按 POSIX wcwidth 不计列。
     """
     if cp in NAMED_EM_RATIO:
         return round(NAMED_EM_RATIO[cp] * upem)
-    if ENCLOSED_ALNUM[0] <= cp <= ENCLOSED_ALNUM[1] and _is_assigned(cp):
-        return upem  # §2 例外表：思源按 1 em 画的轮廓，不得再按 Ambiguous 压缩
+    if is_fullwidth_exception(cp):
+        return upem
     if is_emoji_presentation(cp):
-        return upem // 2  # Regular 黑白半宽；彩色全宽由表情字体覆盖
+        return upem // 2
     if cp >= 0x110000:
         return upem // 2
     cat = unicodedata.category(chr(cp))
@@ -1791,7 +1850,7 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
             eopt.layout_features = "*"
             esub = Subsetter(options=eopt)
             etiny = TTFont(emoji_ttf)
-            esub.populate(text=html)
+            esub.populate(text=html, unicodes=catalog_cps)
             esub.subset(etiny)
             etiny.save(DIST / variant["preview_name"])
 
@@ -1858,13 +1917,30 @@ def main() -> None:
     print("circled1", h[a[0x2460]][0], f"width={circled_w:.0f}", "warn", h[a[0x26A0]][0])
     if h[a[0x2460]][0] != TARGET_UPEM or circled_w < TARGET_UPEM * 0.8:
         raise SystemExit("U+2460 例外表未生效：推进或轮廓宽度不合格")
+    if h[a[0x26A0]][0] != TARGET_UPEM:
+        raise SystemExit("U+26A0 思源覆盖后须为 1 em")
     print("circled21", h[a[0x3251]][0], "hw-kiyeok", h[a[0xFFA1]][0], "corp", h[a[0x337F]][0])
     print("emdash", h[a[0x2014]][0], "emspace", h[a[0x2003]][0], "twoem", h[a[0x2E3A]][0], "threeem", h[a[0x2E3B]][0])
     if 0x2705 not in a or 0x1F0CF not in a:
         raise SystemExit("Regular 须保留 U+2705 与 U+1F0CF，不得剔除 EP")
-    if h[a[0x2705]][0] != TARGET_UPEM // 2 or h[a[0x1F0CF]][0] != TARGET_UPEM // 2:
-        raise SystemExit("Regular 的 EP 黑白稿须为 0.5 em")
-    print("check-ep", 0x2705 in a, "joker", 0x1F0CF in a, "voltage-ep", 0x26A1 in a, "warn-keep", 0x26A0 in a)
+    if h[a[0x2705]][0] != TARGET_UPEM // 2:
+        raise SystemExit("U+2705 思源无此字，Regular 仍须 0.5 em")
+    if h[a[0x1F0CF]][0] != TARGET_UPEM // 2:
+        raise SystemExit("U+1F0CF 扑克不拉宽，Regular 须 0.5 em")
+    if 0x1F201 in a and h[a[0x1F201]][0] != TARGET_UPEM:
+        raise SystemExit("U+1F201 表意例外须为 1 em")
+    if 0x1F100 in a and h[a[0x1F100]][0] != TARGET_UPEM:
+        raise SystemExit("带圈字母数字补充须拉到 1 em")
+    print(
+        "check-ep",
+        h[a[0x2705]][0],
+        "joker",
+        h[a[0x1F0CF]][0],
+        "koko",
+        h[a[0x1F201]][0] if 0x1F201 in a else None,
+        "alnum-sup",
+        h[a[0x1F100]][0] if 0x1F100 in a else None,
+    )
     print("done", regular_out, "bytes", regular_out.stat().st_size)
 
 
