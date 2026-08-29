@@ -24,7 +24,7 @@ JBM = VENDOR / "jetbrains-mono" / "fonts" / "ttf" / "JetBrainsMonoNL-Regular.ttf
 JBM_OFL = VENDOR / "jetbrains-mono" / "OFL.txt"
 SOURCE_HAN = VENDOR / "source-han-sans" / "SourceHanSansSC-Regular.otf"
 
-# 规范 §6：配套表情字体，不并入 Regular；Regular 剔除 Emoji_Presentation
+# 规范 §6：配套表情字体，不并入 Regular；Regular 保留 EP 黑白半宽，由栈覆盖
 NOTO_EMOJI = VENDOR / "noto-emoji" / "Noto-COLRv1.ttf"
 NOTO_EMOJI_OFL = VENDOR / "noto-emoji" / "LICENSE"
 FLUENT_EMOJI = VENDOR / "fluent-emoji" / "FluentEmojiColor.ttf"
@@ -112,8 +112,8 @@ TARGET_UPEM = 1000  # Regular 与配套表情同一 em；1 em = 2 格
 # 表情序列用到的零宽/组合码位，本身不是「一幅图」，但 cmap 里要留着才能拼 ZWJ / 键帽。
 EMOJI_SEQUENCE_CPS = frozenset({0x200D, 0xFE0E, 0xFE0F, 0x20E3})
 
-# Unicode Emoji_Presentation。Regular 从 cmap 剔除，避免挡住配套彩色表情。
-# 不含 ⚠★❤☀✓✔ 等默认文本表现字符。
+# Unicode Emoji_Presentation。Regular 保留更纱黑白稿并收成半宽；彩色全宽由表情字体覆盖。
+# 不含 ⚠★❤☀✓✔ 等默认文本表现字符（那些走 UAX #11）。
 EMOJI_PRESENTATION_RANGES = (
     (0x231A, 0x231B),
     (0x23E9, 0x23EC),
@@ -277,9 +277,31 @@ def assigned_count(lo: int, hi: int) -> int:
     return sum(1 for cp in range(lo, hi + 1) if _is_assigned(cp))
 
 
-def pack_coverage_row(cmap: dict[int, str], name: str, note: str, universe) -> dict:
+def pack_coverage_row(
+    cmap: dict[int, str],
+    name: str,
+    note: str,
+    universe,
+    *,
+    empty_ok: bool = False,
+) -> dict:
     mapped, total = count_mapped(cmap, universe)
+    return pack_count_row(name, note, mapped, total, empty_ok=empty_ok)
+
+
+def pack_count_row(
+    name: str,
+    note: str,
+    mapped: int,
+    total: int,
+    *,
+    empty_ok: bool = False,
+) -> dict:
     value = pct_value(mapped, total)
+    if empty_ok:
+        accepted = total > 0 and mapped == 0
+    else:
+        accepted = total > 0 and mapped == total
     return {
         "name": name,
         "note": note,
@@ -287,19 +309,12 @@ def pack_coverage_row(cmap: dict[int, str], name: str, note: str, universe) -> d
         "total": total,
         "percent": f"{value:.2f}%",
         "percentValue": value,
+        "accepted": accepted,
     }
 
 
-def pack_count_row(name: str, note: str, mapped: int, total: int) -> dict:
-    value = pct_value(mapped, total)
-    return {
-        "name": name,
-        "note": note,
-        "mapped": mapped,
-        "total": total,
-        "percent": f"{value:.2f}%",
-        "percentValue": value,
-    }
+def acceptance_mark(row: dict) -> str:
+    return "✅" if row.get("accepted") else ""
 
 
 def product_coverage(cmap: dict[int, str]) -> dict:
@@ -365,6 +380,7 @@ def product_coverage(cmap: dict[int, str]) -> dict:
                 "total": BMP_DENOM,
                 "percent": f"{bmp_value:.2f}%",
                 "percentValue": bmp_value,
+                "accepted": False,
             },
             {
                 "name": "增补平面",
@@ -373,6 +389,7 @@ def product_coverage(cmap: dict[int, str]) -> dict:
                 "total": supp_total,
                 "percent": f"{supp_value:.2f}%",
                 "percentValue": supp_value,
+                "accepted": False,
             },
             {
                 "name": "全平面已分配",
@@ -381,6 +398,7 @@ def product_coverage(cmap: dict[int, str]) -> dict:
                 "total": all_assigned,
                 "percent": f"{all_value:.2f}%",
                 "percentValue": all_value,
+                "accepted": False,
             },
         ],
         "cjk": [pack_coverage_row(cmap, n, note, u) for n, note, u in cjk],
@@ -392,13 +410,13 @@ def emoji_coverage(
     regular_cmap: dict[int, str],
     emoji_stats: list[tuple[str, dict, int]],
 ) -> list[dict]:
-    """配套表情字体覆盖；Regular 的 Emoji_Presentation 故意为 0。"""
+    """配套表情字体覆盖；Regular 对 Emoji_Presentation 保留黑白半宽稿。"""
     ep = emoji_presentation_set()
     rows = [
         pack_coverage_row(
             regular_cmap,
             "Emoji_Presentation · Regular",
-            "等宽本体故意不收录默认 emoji 表现",
+            "等宽本体黑白稿，半宽，不剔除",
             ep,
         )
     ]
@@ -457,46 +475,46 @@ def coverage_markdown_tables(product: dict) -> list[str]:
     lines = [
         "## 总览",
         "",
-        "| 项目 | 已覆盖 | 集合大小 | 覆盖率 | 说明 |",
-        "|------|--------|----------|--------|------|",
+        "| 项目 | 已覆盖 | 集合大小 | 覆盖率 | 验收 | 说明 |",
+        "|------|--------|----------|--------|------|------|",
     ]
     for row in product["overview"]:
         lines.append(
-            f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {row['note']} |"
+            f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {acceptance_mark(row)} | {row['note']} |"
         )
     lines += [
         "",
         "## CJK",
         "",
-        "| 集合 | 已覆盖 | 集合大小 | 覆盖率 | 说明 |",
-        "|------|--------|----------|--------|------|",
+        "| 集合 | 已覆盖 | 集合大小 | 覆盖率 | 验收 | 说明 |",
+        "|------|--------|----------|--------|------|------|",
     ]
     for row in product["cjk"]:
         lines.append(
-            f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {row['note']} |"
+            f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {acceptance_mark(row)} | {row['note']} |"
         )
     lines += [
         "",
         "## Unicode 区段",
         "",
-        "| 区段 | 已覆盖 | 集合大小 | 覆盖率 | 口径 |",
-        "|------|--------|----------|--------|------|",
+        "| 区段 | 已覆盖 | 集合大小 | 覆盖率 | 验收 | 口径 |",
+        "|------|--------|----------|--------|------|------|",
     ]
     for row in product["unicode"]:
         lines.append(
-            f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {row['note']} |"
+            f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {acceptance_mark(row)} | {row['note']} |"
         )
     if product.get("emoji"):
         lines += [
             "",
             "## 表情",
             "",
-            "| 集合 | 已覆盖 | 集合大小 | 覆盖率 | 说明 |",
-            "|------|--------|----------|--------|------|",
+            "| 集合 | 已覆盖 | 集合大小 | 覆盖率 | 验收 | 说明 |",
+            "|------|--------|----------|--------|------|------|",
         ]
         for row in product["emoji"]:
             lines.append(
-                f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {row['note']} |"
+                f"| {row['name']} | {row['mapped']} | {row['total']} | {row['percent']} | {acceptance_mark(row)} | {row['note']} |"
             )
     return lines
 
@@ -513,20 +531,6 @@ def in_jbm_ranges(cp: int) -> bool:
 
 def is_emoji_presentation(cp: int) -> bool:
     return any(lo <= cp <= hi for lo, hi in EMOJI_PRESENTATION_RANGES)
-
-
-def strip_emoji_presentation(font: TTFont) -> int:
-    """从 cmap 去掉默认 emoji 表现字符，让配套彩色字体能够露出来。"""
-    dropped: set[int] = set()
-    for table in font["cmap"].tables:
-        if table.format == 14 or not table.isUnicode():
-            continue
-        for cp in [c for c in table.cmap if is_emoji_presentation(c)]:
-            del table.cmap[cp]
-            dropped.add(cp)
-        table.data = None
-    print("stripped emoji presentation", len(dropped))
-    return len(dropped)
 
 
 def keep_in_emoji_font(cp: int) -> bool:
@@ -1381,14 +1385,18 @@ def assigned_enclosed_set() -> frozenset[int]:
 
 
 def expected_advance(cp: int, upem: int) -> int:
-    """名称里的 em 按排版长度；§2 例外表带圈字母数字按 1 em；其余走 UAX #11。
+    """名称里的 em 按排版长度；§2 例外表带圈字母数字按 1 em；
+    Regular 的 Emoji_Presentation 按半宽；其余走 UAX #11。
 
+    表情字体全宽 1 em，不走本函数。禁止从 Regular 剔除 EP。
     Mn/Me 见 UAX #11 §6.2；Cf/Cc 按 POSIX wcwidth 不计列。
     """
     if cp in NAMED_EM_RATIO:
         return round(NAMED_EM_RATIO[cp] * upem)
     if ENCLOSED_ALNUM[0] <= cp <= ENCLOSED_ALNUM[1] and _is_assigned(cp):
         return upem  # §2 例外表：思源按 1 em 画的轮廓，不得再按 Ambiguous 压缩
+    if is_emoji_presentation(cp):
+        return upem // 2  # Regular 黑白半宽；彩色全宽由表情字体覆盖
     if cp >= 0x110000:
         return upem // 2
     cat = unicodedata.category(chr(cp))
@@ -1571,6 +1579,7 @@ def write_coverage(
         else:
             grid = "混"
         cov = 100.0 * len(in_font) / len(assigned_blk) if assigned_blk else 0.0
+        accepted = bool(assigned_blk) and len(in_font) == len(assigned_blk)
         block_rows.append(
             {
                 "block": title,
@@ -1578,6 +1587,7 @@ def write_coverage(
                 "assigned": len(assigned_blk),
                 "mapped": len(in_font),
                 "percent": round(cov, 2),
+                "accepted": accepted,
                 "grid": grid,
                 "source": "+".join(sorted(origin)) if origin else "—",
             }
@@ -1615,13 +1625,13 @@ def write_coverage(
         "",
         "## Unicode 分块（必测）",
         "",
-        "| 区块 | 范围 | 该版本已分配 | 已覆盖 | 覆盖率 | 格子 | 来源 |",
-        "|------|------|--------------|--------|--------|------|------|",
+        "| 区块 | 范围 | 该版本已分配 | 已覆盖 | 覆盖率 | 验收 | 格子 | 来源 |",
+        "|------|------|--------------|--------|--------|------|------|------|",
     ]
     for row in block_rows:
         lines.append(
             f"| {row['block']} | {row['range']} | {row['assigned']} | {row['mapped']} | "
-            f"{row['percent']}% | {row['grid']} | {row['source']} |"
+            f"{row['percent']}% | {acceptance_mark(row)} | {row['grid']} | {row['source']} |"
         )
     (DIST / "coverage-blocks.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return violations
@@ -1717,24 +1727,23 @@ def main() -> None:
     strip_ligatures(base)
     apply_uax11_metrics(base)
     ensure_multi_em_dashes(base)
-    strip_emoji_presentation(base)
     set_names(base)
     sanitize_for_ots(base)
-    out = DIST / "XiaoheiziMono-Regular.ttf"
-    print("save", out)
-    base.save(out)
+    regular_out = DIST / "XiaoheiziMono-Regular.ttf"
+    print("save", regular_out)
+    base.save(regular_out)
     emoji_outs: list[Path] = []
     for variant in EMOJI_VARIANTS:
-        out = DIST / variant["out_name"]
-        if emoji_variant_needs_rebuild(variant, out):
+        emoji_out = DIST / variant["out_name"]
+        if emoji_variant_needs_rebuild(variant, emoji_out):
             emoji_outs.append(build_emoji_variant(variant))
         else:
-            print("reuse emoji", out.name)
-            emoji_outs.append(out)
+            print("reuse emoji", emoji_out.name)
+            emoji_outs.append(emoji_out)
     print("coverage")
-    built = TTFont(out)
+    built = TTFont(regular_out)
     violations = write_coverage(built, sources, emoji_outs)
-    write_preview(out, emoji_outs)
+    write_preview(regular_out, emoji_outs)
     shutil.copyfile(ROOT / "OFL.txt", DIST / "OFL.txt")
     if JBM_OFL.exists():
         shutil.copyfile(JBM_OFL, DIST / "JetBrainsMono-OFL.txt")
@@ -1760,8 +1769,12 @@ def main() -> None:
         raise SystemExit("U+2460 例外表未生效：推进或轮廓宽度不合格")
     print("circled21", h[a[0x3251]][0], "hw-kiyeok", h[a[0xFFA1]][0], "corp", h[a[0x337F]][0])
     print("emdash", h[a[0x2014]][0], "emspace", h[a[0x2003]][0], "twoem", h[a[0x2E3A]][0], "threeem", h[a[0x2E3B]][0])
-    print("check-ep", 0x2705 in a, "voltage-ep", 0x26A1 in a, "warn-keep", 0x26A0 in a)
-    print("done", out, "bytes", out.stat().st_size)
+    if 0x2705 not in a or 0x1F0CF not in a:
+        raise SystemExit("Regular 须保留 U+2705 与 U+1F0CF，不得剔除 EP")
+    if h[a[0x2705]][0] != TARGET_UPEM // 2 or h[a[0x1F0CF]][0] != TARGET_UPEM // 2:
+        raise SystemExit("Regular 的 EP 黑白稿须为 0.5 em")
+    print("check-ep", 0x2705 in a, "joker", 0x1F0CF in a, "voltage-ep", 0x26A1 in a, "warn-keep", 0x26A0 in a)
+    print("done", regular_out, "bytes", regular_out.stat().st_size)
 
 
 if __name__ == "__main__":

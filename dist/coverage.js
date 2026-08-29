@@ -5,26 +5,29 @@ window.XIAOHEIZI_COVERAGE = {
     {
       "name": "总字符数（BMP）",
       "note": "已映射且码位 ≤ U+FFFF / 65535",
-      "mapped": 46106,
+      "mapped": 46130,
       "total": 65535,
-      "percent": "70.35%",
-      "percentValue": 70.35
+      "percent": "70.39%",
+      "percentValue": 70.39,
+      "accepted": false
     },
     {
       "name": "增补平面",
       "note": "已映射且码位 ≥ U+10000 / 该版本已分配",
-      "mapped": 4894,
+      "mapped": 4919,
       "total": 224685,
-      "percent": "2.18%",
-      "percentValue": 2.18
+      "percent": "2.19%",
+      "percentValue": 2.19,
+      "accepted": false
     },
     {
       "name": "全平面已分配",
       "note": "mapped / 该 Unicode 版本已分配标量值",
-      "mapped": 51000,
+      "mapped": 51049,
       "total": 288735,
-      "percent": "17.66%",
-      "percentValue": 17.66
+      "percent": "17.68%",
+      "percentValue": 17.68,
+      "accepted": false
     }
   ],
   "cjk": [
@@ -34,7 +37,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 6763,
       "total": 6763,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "Big5 L1",
@@ -42,7 +46,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 5401,
       "total": 5401,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "日文假名",
@@ -50,7 +55,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 182,
       "total": 182,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "谚文音节",
@@ -58,7 +64,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 11172,
       "total": 11172,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     }
   ],
   "unicode": [
@@ -68,7 +75,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 20992,
       "total": 20992,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "中日韩符号和标点",
@@ -76,7 +84,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 64,
       "total": 64,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "基本拉丁字母",
@@ -84,7 +93,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 95,
       "total": 95,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "标准阿拉伯数字",
@@ -92,7 +102,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 10,
       "total": 10,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "通用可视标点",
@@ -100,7 +111,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 24,
       "total": 24,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "货币符号",
@@ -108,7 +120,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 27,
       "total": 33,
       "percent": "81.82%",
-      "percentValue": 81.82
+      "percentValue": 81.82,
+      "accepted": false
     },
     {
       "name": "类字符号",
@@ -116,7 +129,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 61,
       "total": 80,
       "percent": "76.25%",
-      "percentValue": 76.25
+      "percentValue": 76.25,
+      "accepted": false
     },
     {
       "name": "西里尔字母",
@@ -124,7 +138,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 256,
       "total": 256,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "中日韩统一表意文字扩展 A 区",
@@ -132,7 +147,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 6592,
       "total": 6592,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "中日韩统一表意文字扩展 B 区",
@@ -140,7 +156,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 2109,
       "total": 42720,
       "percent": "4.94%",
-      "percentValue": 4.94
+      "percentValue": 4.94,
+      "accepted": false
     },
     {
       "name": "中日韩统一表意文字扩展 C 区",
@@ -148,7 +165,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 48,
       "total": 4154,
       "percent": "1.16%",
-      "percentValue": 1.16
+      "percentValue": 1.16,
+      "accepted": false
     },
     {
       "name": "中日韩统一表意文字扩展 D 区",
@@ -156,7 +174,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 34,
       "total": 222,
       "percent": "15.32%",
-      "percentValue": 15.32
+      "percentValue": 15.32,
+      "accepted": false
     },
     {
       "name": "中日韩统一表意文字扩展 E 区",
@@ -164,7 +183,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 113,
       "total": 5762,
       "percent": "1.96%",
-      "percentValue": 1.96
+      "percentValue": 1.96,
+      "accepted": false
     },
     {
       "name": "中日韩统一表意文字扩展 F 区",
@@ -172,7 +192,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 6,
       "total": 7473,
       "percent": "0.08%",
-      "percentValue": 0.08
+      "percentValue": 0.08,
+      "accepted": false
     },
     {
       "name": "中日韩统一表意文字扩展 G 区",
@@ -180,7 +201,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 4,
       "total": 4939,
       "percent": "0.08%",
-      "percentValue": 0.08
+      "percentValue": 0.08,
+      "accepted": false
     },
     {
       "name": "中日韩统一表意文字扩展 H 区",
@@ -188,7 +210,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 0,
       "total": 4192,
       "percent": "0.00%",
-      "percentValue": 0.0
+      "percentValue": 0.0,
+      "accepted": false
     },
     {
       "name": "希腊和科普特字母",
@@ -196,7 +219,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 121,
       "total": 135,
       "percent": "89.63%",
-      "percentValue": 89.63
+      "percentValue": 89.63,
+      "accepted": false
     },
     {
       "name": "泰文",
@@ -204,7 +228,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 1,
       "total": 87,
       "percent": "1.15%",
-      "percentValue": 1.15
+      "percentValue": 1.15,
+      "accepted": false
     },
     {
       "name": "拉丁文补充-1",
@@ -212,7 +237,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 96,
       "total": 128,
       "percent": "75.00%",
-      "percentValue": 75.0
+      "percentValue": 75.0,
+      "accepted": false
     },
     {
       "name": "通用标点",
@@ -220,7 +246,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 94,
       "total": 111,
       "percent": "84.68%",
-      "percentValue": 84.68
+      "percentValue": 84.68,
+      "accepted": false
     },
     {
       "name": "箭头",
@@ -228,15 +255,17 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 112,
       "total": 112,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "杂项技术用字符",
       "note": "U+2300–23FF",
-      "mapped": 209,
+      "mapped": 217,
       "total": 256,
-      "percent": "81.64%",
-      "percentValue": 81.64
+      "percent": "84.77%",
+      "percentValue": 84.77,
+      "accepted": false
     },
     {
       "name": "带圈字母数字",
@@ -244,7 +273,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 160,
       "total": 160,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "制表符",
@@ -252,7 +282,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 128,
       "total": 128,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "方块元素",
@@ -260,39 +291,44 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 32,
       "total": 32,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "几何图形",
       "note": "U+25A0–25FF",
-      "mapped": 94,
+      "mapped": 96,
       "total": 96,
-      "percent": "97.92%",
-      "percentValue": 97.92
+      "percent": "100.00%",
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "杂项符号",
       "note": "U+2600–26FF",
-      "mapped": 103,
+      "mapped": 108,
       "total": 256,
-      "percent": "40.23%",
-      "percentValue": 40.23
+      "percent": "42.19%",
+      "percentValue": 42.19,
+      "accepted": false
     },
     {
       "name": "印刷符号",
       "note": "U+2700–27BF",
-      "mapped": 98,
+      "mapped": 103,
       "total": 192,
-      "percent": "51.04%",
-      "percentValue": 51.04
+      "percent": "53.65%",
+      "percentValue": 53.65,
+      "accepted": false
     },
     {
       "name": "杂项符号和箭头",
       "note": "U+2B00–2BFF",
-      "mapped": 162,
+      "mapped": 166,
       "total": 253,
-      "percent": "64.03%",
-      "percentValue": 64.03
+      "percent": "65.61%",
+      "percentValue": 65.61,
+      "accepted": false
     },
     {
       "name": "注音符号",
@@ -300,7 +336,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 43,
       "total": 43,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "带圈 CJK 字母和月份",
@@ -308,7 +345,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 255,
       "total": 255,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "CJK 兼容字符",
@@ -316,7 +354,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 255,
       "total": 256,
       "percent": "99.61%",
-      "percentValue": 99.61
+      "percentValue": 99.61,
+      "accepted": false
     },
     {
       "name": "CJK 兼容表意文字",
@@ -324,7 +363,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 366,
       "total": 472,
       "percent": "77.54%",
-      "percentValue": 77.54
+      "percentValue": 77.54,
+      "accepted": false
     },
     {
       "name": "半角及全角形式",
@@ -332,17 +372,19 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 225,
       "total": 225,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     }
   ],
   "emoji": [
     {
       "name": "Emoji_Presentation · Regular",
-      "note": "等宽本体故意不收录默认 emoji 表现",
-      "mapped": 0,
+      "note": "等宽本体黑白稿，半宽，不剔除",
+      "mapped": 49,
       "total": 1205,
-      "percent": "0.00%",
-      "percentValue": 0.0
+      "percent": "4.07%",
+      "percentValue": 4.07,
+      "accepted": false
     },
     {
       "name": "Emoji_Presentation · 小黑字表情",
@@ -350,15 +392,17 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 1205,
       "total": 1205,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "Emoji_Presentation · 小黑字表情微软",
       "note": "配套表情字体",
-      "mapped": 1199,
+      "mapped": 1205,
       "total": 1205,
-      "percent": "99.50%",
-      "percentValue": 99.5
+      "percent": "100.00%",
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "区域指示符 · 小黑字表情",
@@ -366,7 +410,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 26,
       "total": 26,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "国旗连字 · 小黑字表情",
@@ -374,7 +419,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 259,
       "total": 259,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "区域指示符 · 小黑字表情微软",
@@ -382,7 +428,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 26,
       "total": 26,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "国旗连字 · 小黑字表情微软",
@@ -390,15 +437,17 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 259,
       "total": 259,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "杂项符号及象形文字 · 微软",
       "note": "U+1F300–1F5FF",
-      "mapped": 631,
+      "mapped": 637,
       "total": 768,
-      "percent": "82.16%",
-      "percentValue": 82.16
+      "percent": "82.94%",
+      "percentValue": 82.94,
+      "accepted": false
     },
     {
       "name": "表情符号 · 微软",
@@ -406,7 +455,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 80,
       "total": 80,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "交通和地图符号 · 微软",
@@ -414,7 +464,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 105,
       "total": 118,
       "percent": "88.98%",
-      "percentValue": 88.98
+      "percentValue": 88.98,
+      "accepted": false
     },
     {
       "name": "补充符号和象形文字 · 微软",
@@ -422,7 +473,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 242,
       "total": 256,
       "percent": "94.53%",
-      "percentValue": 94.53
+      "percentValue": 94.53,
+      "accepted": false
     },
     {
       "name": "符号和象形文字扩展 A · 微软",
@@ -430,7 +482,8 @@ window.XIAOHEIZI_COVERAGE = {
       "mapped": 107,
       "total": 107,
       "percent": "100.00%",
-      "percentValue": 100.0
+      "percentValue": 100.0,
+      "accepted": true
     }
   ]
 };

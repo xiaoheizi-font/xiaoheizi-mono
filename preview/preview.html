@@ -78,6 +78,7 @@
       background: #1a1a1a;
     }
     table.coverage td.num { white-space: nowrap; }
+    table.coverage td.mark { width: 2.4em; text-align: center; }
     table.coverage tbody tr {
       background-image: linear-gradient(
         to right,
@@ -115,7 +116,7 @@
 </head>
 <body>
   <h1>小黑字等宽</h1>
-  <p>标题与下面预览必须是同一套字。汉字应是思源/更纱黑体，西文是 JetBrains Mono。彩色 emoji 有两套配套字体，都按 1 em（两格）对齐，<code>unitsPerEm</code> 与 Regular 同为 1000：本页默认回落「小黑字表情微软」（Fluent）。<code>✅</code> <code>⚡</code> 是默认 emoji 表现，占 1 em（2 格）；Regular 已从 cmap 剔除它们，因此会显示彩色表情。<code>⚠★❤☀✓✔→←</code> 无默认 emoji 表现，Regular 占 0.5 em（1 格）；是否用彩色覆盖由字体栈决定，见下方 Tab。</p>
+  <p>标题与下面预览必须是同一套字。汉字应是思源/更纱黑体，西文是 JetBrains Mono。彩色 emoji 有两套配套字体，都按 1 em（两格）对齐。本页默认 <code>font-family</code> 等宽在前：<code>✅⚡😀🃏</code> 走 Regular <strong>黑白半格</strong>，不剔除；把表情字体写到前面即可覆盖成彩色全宽。<code>⚠★❤☀✓✔</code> 无默认 emoji 表现，Regular 也是半格。见下方 Tab。</p>
   <pre>
 ┌────────┬────────┐
 │id      │值      │
@@ -229,14 +230,14 @@
 │😀🦀🎉  │📁🚀🔥  │
 │Noto    │谷歌    │
 └────────┴────────┘</pre>
-      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji"</code>。等宽在前，缺的彩色字回落到谷歌 Noto。</p>
+      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji"</code>。等宽在前。Regular 已有的字（含 EP 黑白稿）不会回落到彩色。</p>
     </div>
     <div class="tab-panel" hidden>
       <pre class="emoji-ms">┌────────┬────────┐
 │😀🦀🎉  │📁🚀🔥  │
 │MS      │微软    │
 └────────┴────────┘</pre>
-      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS"</code>。等宽在前，缺的彩色字回落到微软 Fluent。与本页正文同一套栈。</p>
+      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS"</code>。等宽在前，与本页正文同一套栈。Regular 已有的字不会回落到彩色。</p>
     </div>
   </div>
 
@@ -369,7 +370,7 @@
 ┌────────────┐
 │〰〽㊗㊙🈂🈷│
 └────────────┘</pre>
-      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS"</code>。不覆盖特殊符号，推荐用来排表。数字与 <code>⚠❤☀</code> 走 Regular 半格；<code>✅⚡😀</code> 仍是彩色。</p>
+      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS"</code>。等宽在前，推荐排表。数字与 <code>⚠❤☀✅😀</code> 凡 Regular 有的都走半格；要彩色请换后面两档。</p>
     </div>
     <div class="tab-panel" hidden>
       <pre class="overlap-emoji">┌────────┐
@@ -456,6 +457,7 @@
           "<td>" + esc(row.name) + "</td>" +
           "<td class=\"num\">" + esc(row.mapped + "/" + row.total) + "</td>" +
           "<td class=\"num\">" + esc(row.percent) + "</td>" +
+          "<td class=\"mark\">" + (row.accepted ? "✅" : "") + "</td>" +
           "<td>" + esc(row.note) + "</td>" +
           "</tr>"
         );
@@ -474,11 +476,11 @@
         "未找到 coverage.js。请运行 python scripts/build.py 后再打开 dist/preview.html。";
     } else {
       root.innerHTML =
-        "<p class=\"meta\">Unicode " + esc(data.unicodeVersion) + " · 行背景宽度等于覆盖率</p>" +
-        renderTable("总览", ["项目", "已覆盖 / 集合", "覆盖率", "说明"], data.overview) +
-        renderTable("CJK", ["集合", "已覆盖 / 集合", "覆盖率", "说明"], data.cjk) +
-        renderTable("Unicode 区段", ["区段", "已覆盖 / 集合", "覆盖率", "口径"], data.unicode) +
-        (data.emoji ? renderTable("表情", ["集合", "已覆盖 / 集合", "覆盖率", "说明"], data.emoji) : "");
+        "<p class=\"meta\">Unicode " + esc(data.unicodeVersion) + " · 行背景宽度等于覆盖率 · 验收列为 ✅ 表示该集合已全部覆盖</p>" +
+        renderTable("总览", ["项目", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.overview) +
+        renderTable("CJK", ["集合", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.cjk) +
+        renderTable("Unicode 区段", ["区段", "已覆盖 / 集合", "覆盖率", "验收", "口径"], data.unicode) +
+        (data.emoji ? renderTable("表情", ["集合", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.emoji) : "");
     }
   </script>
 </body>
