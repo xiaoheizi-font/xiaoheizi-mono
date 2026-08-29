@@ -49,8 +49,7 @@ jobs:
           mkdir -p _site
           cp dist/preview.html _site/index.html
           cp dist/preview.html _site/preview.html
-          cp dist/preview.woff2 dist/preview-emoji.woff2 dist/preview-emoji-3d.woff2 _site/
-          cp dist/preview.ttf dist/preview-emoji.ttf dist/preview-emoji-3d.ttf _site/
+          cp dist/XiaoheiziMono-Regular.woff2 dist/XiaoheiziEmoji-Regular.woff2 dist/XiaoheiziEmoji3D-Regular.woff2 _site/
           cp dist/coverage.js dist/coverage-blocks.md _site/
 
       - uses: actions/upload-pages-artifact@v3

@@ -6,24 +6,21 @@
   <style>
     @font-face {
       font-family: "Xiaoheizi Mono";
-      src: url("./preview.woff2") format("woff2"),
-           url("./preview.ttf") format("truetype");
+      src: url("./XiaoheiziMono-Regular.woff2") format("woff2");
       font-weight: 400;
       font-style: normal;
       font-display: block;
     }
     @font-face {
       font-family: "Xiaoheizi Emoji";
-      src: url("./preview-emoji.woff2") format("woff2"),
-           url("./preview-emoji.ttf") format("truetype");
+      src: url("./XiaoheiziEmoji-Regular.woff2") format("woff2");
       font-weight: 400;
       font-style: normal;
       font-display: block;
     }
     @font-face {
       font-family: "Xiaoheizi Emoji 3D";
-      src: url("./preview-emoji-3d.woff2") format("woff2"),
-           url("./preview-emoji-3d.ttf") format("truetype");
+      src: url("./XiaoheiziEmoji3D-Regular.woff2") format("woff2");
       font-weight: 400;
       font-style: normal;
       font-display: block;
@@ -543,8 +540,9 @@
   </div>
 
   <h2>用字体栈选择是否覆盖特殊符号</h2>
-  <p>表情字体<strong>去掉 ASCII</strong>（数字 <code>0-9</code>、<code>#*</code>、空格），所以不会把等宽数字吃掉。重叠的几十个特殊符号（<code>⚠❤☀✔©®</code> 以及各档里的那些行）<strong>两边都有</strong>：Regular 里是 0.5 em 的文本轮廓，表情字体里是 1 em 的彩色图。用配置改栈顺序即可选择是否覆盖。</p>
-  <p>下面三档字符完全相同。等宽在前时半格符号和数字都应对齐。立体或扁平在前时，数字仍走 Regular；特殊符号被该套彩色盖住、变成 2 格，8 格框会被撑破。这是预期行为，不是排版错误。两套画风不同，覆盖规则相同。</p>
+  <p>表情字体<strong>去掉 ASCII</strong>（数字 <code>0-9</code>、<code>#*</code>、空格），所以不会把等宽数字吃掉。重叠的几十个特殊符号（<code>⚠❤☀✔©®</code> 以及各档里的那些行）<strong>两边都有</strong>：Regular 里是文本轮廓，表情字体里是 1 em 的彩色图。用配置改栈顺序即可选择是否覆盖。</p>
+  <p>下面三档字符完全相同。等宽在前时：数字仍走 Regular；Regular 已有的符号 / EP 走黑白稿；缺字才回落到彩色。立体或扁平在前时，数字仍走 Regular；特殊符号和 emoji 被该套彩色盖住、变成 2 格，按半格排的 8 格框会被撑破。这是预期行为，不是排版错误。两套画风不同，覆盖规则相同。</p>
+  <p>符号表下面是一截常见 emoji（16 格；表情在前时一枚 2 格）。含 Fluent 缺、由 Noto 补进立体套的 <code>👪👫👬👭💏💑</code>。不是全表，全表请看图鉴。</p>
   <div class="tabs" data-tabs>
     <div class="tab-bar" role="tablist">
       <button type="button" role="tab" aria-selected="true">等宽在前</button>
@@ -571,8 +569,15 @@
 
 ┌────────────┐
 │〰〽㊗㊙🈂🈷│
-└────────────┘</pre>
-      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji 3D"</code>。等宽在前，推荐排表。数字与 <code>⚠❤☀✅😀</code> 凡 Regular 有的都走半格；要彩色请换后面两档。</p>
+└────────────┘
+
+┌────────────────┐
+│😀😁😂🤣😃😄😅😆│
+│🦀🐱🐶🐭🦊🐻🐼🐧│
+│🍎🍕🎂☕🚗🚕🚌🎉│
+│👪👫👬👭💏💑🧑👩│
+└────────────────┘</pre>
+      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji 3D"</code>。等宽在前，推荐排表。数字与 Regular 已有的符号 / EP 走黑白；<code>😀</code> 等缺字回落彩色。要整页彩色请换后面两档。</p>
     </div>
     <div class="tab-panel" hidden>
       <pre class="overlap-emoji">┌────────┐
@@ -594,8 +599,15 @@
 
 ┌────────────┐
 │〰〽㊗㊙🈂🈷│
-└────────────┘</pre>
-      <p class="tab-note"><code>font-family: "Xiaoheizi Emoji 3D", "Xiaoheizi Mono"</code>。立体彩色覆盖特殊符号。数字行应仍对齐；从 <code>©®</code> 起行会变宽。</p>
+└────────────┘
+
+┌────────────────┐
+│😀😁😂🤣😃😄😅😆│
+│🦀🐱🐶🐭🦊🐻🐼🐧│
+│🍎🍕🎂☕🚗🚕🚌🎉│
+│👪👫👬👭💏💑🧑👩│
+└────────────────┘</pre>
+      <p class="tab-note"><code>font-family: "Xiaoheizi Emoji 3D", "Xiaoheizi Mono"</code>。立体彩色覆盖符号与 emoji。数字行应仍对齐；从 <code>©®</code> 和下面 emoji 表起会变宽。<code>👪</code> 一行立体套里是 Noto 补的扁平人物。</p>
     </div>
     <div class="tab-panel" hidden>
       <pre class="overlap-emoji-noto">┌────────┐
@@ -617,8 +629,15 @@
 
 ┌────────────┐
 │〰〽㊗㊙🈂🈷│
-└────────────┘</pre>
-      <p class="tab-note"><code>font-family: "Xiaoheizi Emoji", "Xiaoheizi Mono"</code>。规则与「立体覆盖」相同，画风为扁平色块。数字行应仍对齐；特殊符号被扁平彩色覆盖。</p>
+└────────────┘
+
+┌────────────────┐
+│😀😁😂🤣😃😄😅😆│
+│🦀🐱🐶🐭🦊🐻🐼🐧│
+│🍎🍕🎂☕🚗🚕🚌🎉│
+│👪👫👬👭💏💑🧑👩│
+└────────────────┘</pre>
+      <p class="tab-note"><code>font-family: "Xiaoheizi Emoji", "Xiaoheizi Mono"</code>。规则与「立体覆盖」相同，画风为扁平色块。数字行应仍对齐；符号与 emoji 被扁平彩色覆盖。</p>
     </div>
   </div>
 

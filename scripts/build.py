@@ -40,7 +40,6 @@ EMOJI_VARIANTS = (
         "ps": "XiaoheiziEmoji-Regular",
         "full_en": "Xiaoheizi Emoji Regular",
         "out_name": "XiaoheiziEmoji-Regular.ttf",
-        "preview_name": "preview-emoji.ttf",
         "copyright": "Copyright 2026 小黑字. Portions: Google LLC / Noto Emoji authors. SIL OFL 1.1.",
         "license_notice": "This Font Software is licensed under the SIL Open Font License, Version 1.1. https://openfontlicense.org",
     },
@@ -51,7 +50,6 @@ EMOJI_VARIANTS = (
         "ps": "XiaoheiziEmoji3D-Regular",
         "full_en": "Xiaoheizi Emoji 3D Regular",
         "out_name": "XiaoheiziEmoji3D-Regular.ttf",
-        "preview_name": "preview-emoji-3d.ttf",
         "flags_from_noto": True,
         "copyright": "Copyright 2026 小黑字. Artwork: Microsoft Fluent Emoji (MIT); flag glyphs from Noto Emoji (Google LLC, SIL OFL 1.1). Font compilation portions: tetunori/fluent-emoji-webfont (MIT).",
         "license_notice": "Font names under SIL OFL 1.1. Fluent Emoji artwork under MIT. Flag portions from Noto Emoji under SIL OFL 1.1. See license files in dist/.",
@@ -1027,6 +1025,16 @@ def _remap_paint_tree(
 
 RI_LO, RI_HI = 0x1F1E6, 0x1F1FF
 
+# Fluent Color 不收录这些默认 emoji 表现单码位，从 Noto 补进立体套（规范 §6）。
+NOTO_FILL_EP = (
+    0x1F46A,  # 👪 FAMILY
+    0x1F46B,  # 👫 MAN AND WOMAN HOLDING HANDS
+    0x1F46C,  # 👬 TWO MEN HOLDING HANDS
+    0x1F46D,  # 👭 TWO WOMEN HOLDING HANDS
+    0x1F48F,  # 💏 KISS
+    0x1F491,  # 💑 COUPLE WITH HEART
+)
+
 
 def _find_ri_ligatures(noto: TTFont, ri_glyphs: set[str]) -> dict[str, list]:
     """在 Noto GSUB 里找「首字为区域指示符」的连字子表，返回 {首字形: [连字]}。"""
@@ -1143,11 +1151,11 @@ def _count_ri_flag_ligatures(font: TTFont) -> int:
 
 
 def merge_noto_flags(dest: TTFont) -> None:
-    """规范 §6：Fluent 不收录国旗，用已缩到 upem 1000 的 Noto 补字。
+    """规范 §6：Fluent 不收录国旗与 6 个家庭/牵手单码位，用已缩到 upem 1000 的 Noto 补字。
 
-    拷入 U+1F1E6–1F1FF 的 glyf / hmtx（1000）/ COLR 画笔（含 LayerList 切片）与 RI 连字；
-    Noto 调色板条目追加到 CPAL，拷入画笔的 palette index 重映射（0xFFFF 除外）；
-    国旗 lookup 挂到 ccmp 最前；不拷 Noto 的 ASCII，不覆盖 Fluent 已有码位。
+    拷入 U+1F1E6–1F1FF 的 glyf / hmtx（1000）/ COLR 画笔（含 LayerList 切片）与 RI 连字，
+    以及 NOTO_FILL_EP 六个单码位；Noto 调色板条目追加到 CPAL，拷入画笔的 palette index
+    重映射（0xFFFF 除外）；国旗 lookup 挂到 ccmp 最前；不拷 Noto 的 ASCII，不覆盖 Fluent 已有码位。
     """
     product = DIST / "XiaoheiziEmoji-Regular.ttf"
     if product.exists():
@@ -1178,13 +1186,23 @@ def merge_noto_flags(dest: TTFont) -> None:
                 )
                 lig_glyphs.add(lig.LigGlyph)
 
-    need = ri_glyphs | lig_glyphs
+    dest_cmap = dest.getBestCmap()
+    fill_cps = []
+    for cp in NOTO_FILL_EP:
+        if cp not in ncmap:
+            raise SystemExit(f"Noto 缺少补字码位 U+{cp:04X}")
+        if cp in dest_cmap:
+            continue
+        fill_cps.append(cp)
+    fill_glyphs = {ncmap[cp] for cp in fill_cps}
+
+    need = ri_glyphs | lig_glyphs | fill_glyphs
     ncolr = noto["COLR"].table
     nrecs = {r.BaseGlyph: r for r in ncolr.BaseGlyphList.BaseGlyphPaintRecord}
     if len(need) != len(need & nrecs.keys()):
-        raise SystemExit("Noto COLR 缺少旗字形记录")
+        raise SystemExit("Noto COLR 缺少旗字形或补字记录")
 
-    colr_need = set(ri_glyphs | lig_glyphs)
+    colr_need = set(ri_glyphs | lig_glyphs | fill_glyphs)
     pending = set(colr_need)
     outline_refs: set[str] = set()
     seen_layers: set[int] = set()
@@ -1224,7 +1242,7 @@ def merge_noto_flags(dest: TTFont) -> None:
     for table in dest["cmap"].tables:
         if not table.isUnicode() or table.format not in (12, 13):
             continue
-        for cp in range(RI_LO, RI_HI + 1):
+        for cp in list(range(RI_LO, RI_HI + 1)) + fill_cps:
             if cp not in table.cmap:
                 table.cmap[cp] = rename[ncmap[cp]]
         table.data = None
@@ -1308,6 +1326,10 @@ def merge_noto_flags(dest: TTFont) -> None:
     us_layers = _count_reachable_colr_layers(dest, 0x1F1FA, 0x1F1F8)
     if us_layers < 40:
         raise SystemExit(f"国旗嵌套 LayerList 重映射失败：🇺🇸 只有 {us_layers} 层（应含星条）")
+    after_cmap = dest.getBestCmap()
+    still_missing = [f"U+{cp:04X}" for cp in NOTO_FILL_EP if cp not in after_cmap]
+    if still_missing:
+        raise SystemExit("Noto 补 EP 单码位失败：" + ", ".join(still_missing))
 
     noto.close()
     print(
@@ -1318,6 +1340,8 @@ def merge_noto_flags(dest: TTFont) -> None:
         "colr bases;",
         len(lig_glyphs),
         "ligatures;",
+        len(fill_cps),
+        "fill-ep;",
         len(dcolr.LayerList.Paint) - layers_before,
         "colr layers",
     )
@@ -1351,6 +1375,9 @@ def build_emoji_variant(variant: dict) -> Path:
         check.close()
         if not ok or us_layers < 40:
             raise SystemExit(f"写出后国旗 COLR 仍不合格（🇺🇸 {us_layers} 层）")
+        miss = [f"U+{cp:04X}" for cp in NOTO_FILL_EP if cp not in cmap]
+        if miss:
+            raise SystemExit("写出后仍缺 Noto 所补 EP：" + ", ".join(miss))
     return out
 
 
@@ -1377,6 +1404,8 @@ def emoji_variant_needs_rebuild(variant: dict, path: Path) -> bool:
             if not _flag_colr_layers_are_paint_glyph(font, g_c, g_n):
                 return True
             if _count_reachable_colr_layers(font, 0x1F1FA, 0x1F1F8) < 40:
+                return True
+            if any(cp not in cmap for cp in NOTO_FILL_EP):
                 return True
         return False
     finally:
@@ -1868,7 +1897,6 @@ def build_glyph_catalog(cmap: dict[int, str]) -> tuple[dict, list[int]]:
 def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     if not PREVIEW_HTML.exists():
         raise SystemExit(f"缺少预览模板：{PREVIEW_HTML}")
-    from fontTools.subset import Options, Subsetter
 
     DIST.mkdir(parents=True, exist_ok=True)
     html = PREVIEW_HTML.read_text(encoding="utf-8")
@@ -1878,7 +1906,7 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     cmap = tiny.getBestCmap()
     product = product_coverage(cmap)
     product["emoji"] = emoji_coverage(cmap, load_emoji_stats(emoji_ttfs))
-    catalog, catalog_cps = build_glyph_catalog(cmap)
+    catalog, _catalog_cps = build_glyph_catalog(cmap)
     product["catalog"] = catalog
     payload = {
         "unicodeVersion": product["unicodeVersion"],
@@ -1895,33 +1923,20 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
         + json.dumps(payload, ensure_ascii=False, indent=2)
         + ";\n"
     )
-    js_path = DIST / "coverage.js"
-    js_path.write_text(js, encoding="utf-8")
-
-    opt = Options()
-    opt.ignore_missing_unicodes = True
-    opt.layout_features = "*"
-    sub = Subsetter(options=opt)
-    sub.populate(
-        text=html + js,
-        unicodes=list(range(0x20, 0x7F)) + [0xA0] + catalog_cps,
-    )
-    sub.subset(tiny)
-    sanitize_for_ots(tiny)
-    tiny.save(DIST / "preview.ttf")
-
-    if emoji_ttfs:
-        for variant, emoji_ttf in zip(EMOJI_VARIANTS, emoji_ttfs):
-            if not emoji_ttf.exists():
-                continue
-            eopt = Options()
-            eopt.ignore_missing_unicodes = True
-            eopt.layout_features = "*"
-            esub = Subsetter(options=eopt)
-            etiny = TTFont(emoji_ttf)
-            esub.populate(text=html, unicodes=catalog_cps)
-            esub.subset(etiny)
-            etiny.save(DIST / variant["preview_name"])
+    (DIST / "coverage.js").write_text(js, encoding="utf-8")
+    tiny.close()
+    for stale in (
+        "preview.ttf",
+        "preview-emoji.ttf",
+        "preview-emoji-3d.ttf",
+        "preview.woff2",
+        "preview-emoji.woff2",
+        "preview-emoji-3d.woff2",
+    ):
+        old = DIST / stale
+        if old.exists():
+            old.unlink()
+            print("removed stale", stale)
 
 
 def write_woff2(ttf_path: Path) -> Path:
@@ -1982,6 +1997,8 @@ def main() -> None:
     built = TTFont(regular_out)
     violations = write_coverage(built, sources, emoji_outs)
     write_preview(regular_out, emoji_outs)
+    for product_ttf in (regular_out, *emoji_outs):
+        write_woff2(product_ttf)
     shutil.copyfile(ROOT / "OFL.txt", DIST / "OFL.txt")
     if JBM_OFL.exists():
         shutil.copyfile(JBM_OFL, DIST / "JetBrainsMono-OFL.txt")
@@ -2054,7 +2071,18 @@ def main() -> None:
         "alnum-sup",
         h[a[0x1F100]][0] if 0x1F100 in a else None,
     )
+    woff_regular = TTFont(regular_out.with_suffix(".woff2"))
+    if woff_regular.flavor != "woff2":
+        raise SystemExit("Regular WOFF2 flavor 须为 woff2")
+    if woff_regular["hmtx"][woff_regular.getBestCmap()[ord("A")]][0] != TARGET_UPEM // 2:
+        raise SystemExit("WOFF2 与 TTF 推进须一致")
+    woff_regular.close()
+    for product_ttf in emoji_outs:
+        woff_path = product_ttf.with_suffix(".woff2")
+        if not woff_path.exists():
+            raise SystemExit(f"缺少 {woff_path.name}")
     print("done", regular_out, "bytes", regular_out.stat().st_size)
+    print("woff2", regular_out.with_suffix(".woff2").stat().st_size)
 
 
 if __name__ == "__main__":
