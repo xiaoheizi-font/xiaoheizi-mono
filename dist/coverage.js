@@ -5,7 +5,7 @@ window.XIAOHEIZI_COVERAGE = {
     {
       "name": "总字符数（BMP）",
       "note": "已映射且码位 ≤ U+FFFF / 65535",
-      "mapped": 46130,
+      "mapped": 46131,
       "total": 65535,
       "percent": "70.39%",
       "percentValue": 70.39,
@@ -23,7 +23,7 @@ window.XIAOHEIZI_COVERAGE = {
     {
       "name": "全平面已分配",
       "note": "mapped / 该 Unicode 版本已分配标量值",
-      "mapped": 51049,
+      "mapped": 51050,
       "total": 288735,
       "percent": "17.68%",
       "percentValue": 17.68,
@@ -351,11 +351,11 @@ window.XIAOHEIZI_COVERAGE = {
     {
       "name": "CJK 兼容字符",
       "note": "U+3300–33FF",
-      "mapped": 255,
+      "mapped": 256,
       "total": 256,
-      "percent": "99.61%",
-      "percentValue": 99.61,
-      "accepted": false
+      "percent": "100.00%",
+      "percentValue": 100.0,
+      "accepted": true
     },
     {
       "name": "CJK 兼容表意文字",
@@ -1550,11 +1550,11 @@ window.XIAOHEIZI_COVERAGE = {
     {
       "name": "CJK Compatibility",
       "note": "U+3300–33FF",
-      "mapped": 255,
+      "mapped": 256,
       "total": 256,
-      "percent": "99.61%",
-      "percentValue": 99.61,
-      "accepted": false,
+      "percent": "100.00%",
+      "percentValue": 100.0,
+      "accepted": true,
       "nameZh": "中日韩兼容字符"
     },
     {
@@ -3608,13 +3608,13 @@ window.XIAOHEIZI_COVERAGE = {
       "accepted": true
     },
     {
-      "name": "Emoji_Presentation · 小黑字表情微软",
+      "name": "Emoji_Presentation · 小黑字表情立体",
       "note": "配套表情字体",
-      "mapped": 1205,
+      "mapped": 1199,
       "total": 1205,
-      "percent": "100.00%",
-      "percentValue": 100.0,
-      "accepted": true
+      "percent": "99.50%",
+      "percentValue": 99.5,
+      "accepted": false
     },
     {
       "name": "区域指示符 · 小黑字表情",
@@ -3635,7 +3635,7 @@ window.XIAOHEIZI_COVERAGE = {
       "accepted": true
     },
     {
-      "name": "区域指示符 · 小黑字表情微软",
+      "name": "区域指示符 · 小黑字表情立体",
       "note": "U+1F1E6–1F1FF 共 26 个字母，不是旗面",
       "mapped": 26,
       "total": 26,
@@ -3644,7 +3644,7 @@ window.XIAOHEIZI_COVERAGE = {
       "accepted": true
     },
     {
-      "name": "国旗连字 · 小黑字表情微软",
+      "name": "国旗连字 · 小黑字表情立体",
       "note": "GSUB 两枚区域指示符连成一图",
       "mapped": 259,
       "total": 259,
@@ -3653,16 +3653,16 @@ window.XIAOHEIZI_COVERAGE = {
       "accepted": true
     },
     {
-      "name": "杂项符号及象形文字 · 微软",
+      "name": "杂项符号及象形文字 · 立体",
       "note": "U+1F300–1F5FF",
-      "mapped": 637,
+      "mapped": 631,
       "total": 768,
-      "percent": "82.94%",
-      "percentValue": 82.94,
+      "percent": "82.16%",
+      "percentValue": 82.16,
       "accepted": false
     },
     {
-      "name": "表情符号 · 微软",
+      "name": "表情符号 · 立体",
       "note": "U+1F600–1F64F Emoticons",
       "mapped": 80,
       "total": 80,
@@ -3671,7 +3671,7 @@ window.XIAOHEIZI_COVERAGE = {
       "accepted": true
     },
     {
-      "name": "交通和地图符号 · 微软",
+      "name": "交通和地图符号 · 立体",
       "note": "U+1F680–1F6FF",
       "mapped": 105,
       "total": 118,
@@ -3680,7 +3680,7 @@ window.XIAOHEIZI_COVERAGE = {
       "accepted": false
     },
     {
-      "name": "补充符号和象形文字 · 微软",
+      "name": "补充符号和象形文字 · 立体",
       "note": "U+1F900–1F9FF",
       "mapped": 242,
       "total": 256,
@@ -3689,7 +3689,7 @@ window.XIAOHEIZI_COVERAGE = {
       "accepted": false
     },
     {
-      "name": "符号和象形文字扩展 A · 微软",
+      "name": "符号和象形文字扩展 A · 立体",
       "note": "U+1FA70–1FAFF",
       "mapped": 107,
       "total": 107,
@@ -10413,12 +10413,10 @@ window.XIAOHEIZI_COVERAGE = {
         "nameZh": "中日韩兼容字符",
         "range": "U+3300–33FF",
         "assigned": 256,
-        "mapped": 255,
+        "mapped": 256,
         "sparse": false,
         "chars": "㌀㌁㌂㌃㌄㌅㌆㌇㌈㌉㌊㌋㌌㌍㌎㌏㌐㌑㌒㌓㌔㌕㌖㌗㌘㌙㌚㌛㌜㌝㌞㌟㌠㌡㌢㌣㌤㌥㌦㌧㌨㌩㌪㌫㌬㌭㌮㌯㌰㌱㌲㌳㌴㌵㌶㌷㌸㌹㌺㌻㌼㌽㌾㌿㍀㍁㍂㍃㍄㍅㍆㍇㍈㍉㍊㍋㍌㍍㍎㍏㍐㍑㍒㍓㍔㍕㍖㍗㍘㍙㍚㍛㍜㍝㍞㍟㍠㍡㍢㍣㍤㍥㍦㍧㍨㍩㍪㍫㍬㍭㍮㍯㍰㍱㍲㍳㍴㍵㍶㍷㍸㍹㍺㍻㍼㍽㍾㍿㎀㎁㎂㎃㎄㎅㎆㎇㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏋㏌㏍㏎㏏㏐㏑㏒㏓㏔㏕㏖㏗㏘㏙㏚㏛㏜㏝㏞㏟㏠㏡㏢㏣㏤㏥㏦㏧㏨㏩㏪㏫㏬㏭㏮㏯㏰㏱㏲㏳㏴㏵㏶㏷㏸㏹㏺㏻㏼㏽㏾㏿",
-        "missing": [
-          13100
-        ]
+        "missing": []
       },
       {
         "name": "CJK Unified Ideographs Extension A",

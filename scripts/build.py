@@ -1682,6 +1682,75 @@ def ensure_multi_em_dashes(font: TTFont) -> None:
         print("added multi-em dashes", added)
 
 
+def _simple_contours_where(src, glyf, keep) -> tuple[list, list, list]:
+    """从简单字形里挑轮廓。keep(ymin, ymax) 为真则保留。"""
+    coords, ends, flags = src.getCoordinates(glyf)
+    out_c: list = []
+    out_f: list = []
+    out_e: list = []
+    prev = 0
+    for end in ends:
+        pts = list(coords[prev : end + 1])
+        ys = [p[1] for p in pts]
+        if keep(min(ys), max(ys)):
+            out_c.extend(pts)
+            out_f.extend(list(flags[prev : end + 1]))
+            out_e.append(len(out_c) - 1)
+        prev = end + 1
+    return out_c, out_f, out_e
+
+
+def compose_square_paatu(font: TTFont, sources: dict[str, str]) -> None:
+    """规范 §3：U+332C ㌬。从 ㌫ 拆 パ 与 ー，从 ㌪ 拆 ツ，不缩全角假名。"""
+    from array import array
+
+    from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
+
+    cp = 0x332C
+    haitz = 0x332A  # ㌪ ハイツ，左下是平方词 ツ
+    paasento = 0x332B  # ㌫ パーセント，上半是平方词 パ 与 ー
+    cmap = font.getBestCmap()
+    if haitz not in cmap or paasento not in cmap:
+        raise SystemExit("合成 ㌬ 需要 cmap 含 ㌪ / ㌫")
+    glyf = font["glyf"]
+    pa_bar_c, pa_bar_f, pa_bar_e = _simple_contours_where(
+        glyf[cmap[paasento]], glyf, lambda ymin, ymax: ymin >= 400
+    )
+    tsu_c, tsu_f, tsu_e = _simple_contours_where(
+        glyf[cmap[haitz]], glyf, lambda ymin, ymax: ymax < 400
+    )
+    if len(pa_bar_e) != 5:
+        raise SystemExit(f"㌫ 上半应是 パ(4)+ー(1)，实际 {len(pa_bar_e)} 条轮廓")
+    if len(tsu_e) != 3:
+        raise SystemExit(f"㌪ 下半应是 ツ 的 3 条轮廓，实际 {len(tsu_e)}")
+    coords = pa_bar_c + tsu_c
+    flags = pa_bar_f + tsu_f
+    ends = list(pa_bar_e) + [e + len(pa_bar_c) for e in tsu_e]
+    glyph = Glyph()
+    glyph.numberOfContours = len(ends)
+    glyph.coordinates = GlyphCoordinates(coords)
+    glyph.endPtsOfContours = ends
+    glyph.flags = array("B", [int(f) & 0x07 for f in flags])
+    glyph.program = empty_program()
+    glyph.xMin, glyph.yMin, glyph.xMax, glyph.yMax = glyph.coordinates.calcIntBounds()
+    name = "composed.uni332C"
+    hmtx = font["hmtx"]
+    order = list(font.getGlyphOrder())
+    glyf[name] = glyph
+    lsb = min(p[0] for p in coords)
+    hmtx[name] = (TARGET_UPEM, round(lsb))
+    if name not in order:
+        order.append(name)
+    font.setGlyphOrder(order)
+    font["maxp"].numGlyphs = len(order)
+    for table in font["cmap"].tables:
+        if table.isUnicode() and table.format != 14:
+            table.cmap[cp] = name
+            table.data = None
+    sources[f"U+{cp:04X}"] = "composed-square"
+    print("composed square paatu U+332C from ㌪/㌫")
+
+
 def load_emoji_stats(emoji_ttfs: list[Path] | None) -> list[tuple[str, dict, int]]:
     out: list[tuple[str, dict, int]] = []
     if not emoji_ttfs:
@@ -1877,6 +1946,7 @@ def main() -> None:
     strip_ligatures(base)
     apply_uax11_metrics(base)
     ensure_multi_em_dashes(base)
+    compose_square_paatu(base, sources)
     set_names(base)
     sanitize_for_ots(base)
     regular_out = DIST / "XiaoheiziMono-Regular.ttf"
@@ -1919,7 +1989,32 @@ def main() -> None:
         raise SystemExit("U+2460 例外表未生效：推进或轮廓宽度不合格")
     if h[a[0x26A0]][0] != TARGET_UPEM:
         raise SystemExit("U+26A0 思源覆盖后须为 1 em")
-    print("circled21", h[a[0x3251]][0], "hw-kiyeok", h[a[0xFFA1]][0], "corp", h[a[0x337F]][0])
+    print("corp", h[a[0x337F]][0], "paatu", h[a[0x332C]][0])
+    if 0x332C not in a:
+        raise SystemExit("U+332C ㌬ 须由 ㌪ / ㌫ 拆件合成")
+    if h[a[0x332C]][0] != TARGET_UPEM:
+        raise SystemExit("U+332C 须为 1 em")
+
+    def _right_bar_height(cp: int) -> float | None:
+        g = built["glyf"][a[cp]]
+        coords, ends, _ = g.getCoordinates(built["glyf"])
+        prev = 0
+        best = None
+        for end in ends:
+            pts = coords[prev : end + 1]
+            xs = [p[0] for p in pts]
+            ys = [p[1] for p in pts]
+            prev = end + 1
+            if min(xs) >= 500 and max(xs) - min(xs) > 300:
+                height = max(ys) - min(ys)
+                if best is None or height < best:
+                    best = height
+        return best
+
+    bar_src = _right_bar_height(0x332B)
+    bar_dst = _right_bar_height(0x332C)
+    if bar_src is None or bar_dst is None or abs(bar_dst - bar_src) > 2:
+        raise SystemExit(f"㌬ 横杠高度 {bar_dst} 应与 ㌫ {bar_src} 一致")
     print("emdash", h[a[0x2014]][0], "emspace", h[a[0x2003]][0], "twoem", h[a[0x2E3A]][0], "threeem", h[a[0x2E3B]][0])
     if 0x2705 not in a or 0x1F0CF not in a:
         raise SystemExit("Regular 须保留 U+2705 与 U+1F0CF，不得剔除 EP")

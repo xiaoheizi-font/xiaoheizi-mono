@@ -78,7 +78,39 @@
       background: #1a1a1a;
     }
     table.coverage td.num { white-space: nowrap; }
-    table.coverage td.mark { width: 2.4em; text-align: center; }
+    table.coverage td.mark {
+      width: 2.4em;
+      text-align: center;
+      font-family: "Xiaoheizi Emoji 3D", "Xiaoheizi Emoji", "Xiaoheizi Mono", sans-serif;
+    }
+    .accept-mark {
+      font-family: "Xiaoheizi Emoji 3D", "Xiaoheizi Emoji", "Xiaoheizi Mono", sans-serif;
+    }
+    .table-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      align-items: center;
+      margin: 0.4rem 0 0.8rem;
+    }
+    .accept-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+    .accept-filter button {
+      font: inherit;
+      background: #1c1c1c;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+    }
+    .accept-filter button[aria-pressed="true"] {
+      border-color: #5aa8ff;
+      color: #eee;
+    }
     table.coverage tbody tr {
       background-image: linear-gradient(
         to right,
@@ -119,8 +151,8 @@
       border: 1px solid #444;
       border-radius: 4px;
       padding: 0.3rem 0.5rem;
-      margin: 0.4rem 0 0.8rem;
       min-width: 16rem;
+      margin: 0;
     }
     .catalog {
       max-width: none;
@@ -128,10 +160,22 @@
     }
     .catalog-toolbar {
       display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+      margin: 0.6rem 0 0.8rem;
+    }
+    .catalog-toolbar-row,
+    .catalog-pager,
+    .catalog-stack {
+      display: flex;
       flex-wrap: wrap;
       gap: 0.6rem 1rem;
       align-items: center;
-      margin: 0.6rem 0 0.8rem;
+    }
+    .catalog-pager,
+    .catalog-stack {
+      gap: 0.25rem;
     }
     .catalog-toolbar button,
     .catalog-toolbar input {
@@ -232,11 +276,6 @@
     .catalog-grid.stack-flat {
       font-family: "Xiaoheizi Emoji", "Xiaoheizi Mono", monospace;
     }
-    .catalog-stack {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.25rem;
-    }
     .catalog-stack button[aria-pressed="true"] {
       border-color: #5aa8ff;
       color: #eee;
@@ -257,7 +296,7 @@
 │l1I0O   │，。！  │αβγ     │
 │-> !=   │「」    │абв     │
 │ＡＢＣ  │全角    │１２    │
-│你好A1  │★测试★  │中A中   │
+│你好A1  │★测试★│中A中   │
 └────────┴────────┴────────┘
 
 ┌────────┬────────┐
@@ -268,8 +307,8 @@
 └────────┴────────┘
 
 ┌────────┬────────┐
-│✅⚠★❤☀⚡│符号    │
-│☀⚡✓✔→← │箭头    │
+│✅⚠★❤☀│符号    │
+│☀⚡✓✔→←│箭头    │
 │😀🦀🎉  │📁🚀🔥  │
 └────────┴────────┘
 
@@ -351,14 +390,23 @@
     <h2>字符图鉴</h2>
     <p>按 Unicode <code>Blocks.txt</code> 官方区块列出该区<strong>全部已分配码位</strong>（缺字偏暗）。区块列表由页面画出，行背景宽度等于该区覆盖率。格子固定 2 格宽。一页 512 字（16×32），多则翻页。覆盖率低于 5% 且超过一页的区块只列已收录。右侧可把表情字体叠到前面，对照彩色全宽（不改 Regular 本身）。</p>
     <div class="catalog-toolbar">
-      <div class="catalog-picker" id="catalog-picker">
-        <button type="button" class="catalog-picker-toggle" id="catalog-block" aria-haspopup="listbox" aria-expanded="false" aria-controls="catalog-block-list">选择区块</button>
-        <ul class="catalog-picker-list" id="catalog-block-list" role="listbox" hidden></ul>
+      <div class="catalog-toolbar-row">
+        <div class="catalog-picker" id="catalog-picker">
+          <button type="button" class="catalog-picker-toggle" id="catalog-block" aria-haspopup="listbox" aria-expanded="false" aria-controls="catalog-block-list">选择区块</button>
+          <ul class="catalog-picker-list" id="catalog-block-list" role="listbox" hidden></ul>
+        </div>
+        <input id="catalog-filter" type="search" placeholder="筛选区块，例如 制表符、Box Drawing 或 2500" />
+        <div class="accept-filter" id="catalog-accept" role="group" aria-label="验收筛选">
+          <button type="button" data-accept="all" aria-pressed="true">全部</button>
+          <button type="button" data-accept="yes" aria-pressed="false"><span class="accept-mark">✅</span> 已验收</button>
+          <button type="button" data-accept="no" aria-pressed="false">未验收</button>
+        </div>
       </div>
-      <input id="catalog-filter" type="search" placeholder="筛选区块，例如 制表符、Box Drawing 或 2500" />
-      <button type="button" id="catalog-prev">上一页</button>
-      <span id="catalog-page-label"></span>
-      <button type="button" id="catalog-next">下一页</button>
+      <div class="catalog-pager" role="group" aria-label="图鉴翻页">
+        <button type="button" id="catalog-prev">上一页</button>
+        <span id="catalog-page-label"></span>
+        <button type="button" id="catalog-next">下一页</button>
+      </div>
       <div class="catalog-stack" role="group" aria-label="图鉴字体栈">
         <button type="button" id="catalog-stack-mono" aria-pressed="true">黑白</button>
         <button type="button" id="catalog-stack-3d" aria-pressed="false">叠加立体</button>
@@ -599,23 +647,69 @@
         .replace(/"/g, "&quot;");
     }
 
-    function renderTable(title, headers, rows) {
+    function acceptMark(yes) {
+      return yes ? "<span class=\"accept-mark\">✅</span>" : "";
+    }
+
+    function renderAcceptFilter() {
+      return (
+        "<div class=\"accept-filter\" role=\"group\" aria-label=\"验收筛选\">" +
+        "<button type=\"button\" data-accept=\"all\" aria-pressed=\"true\">全部</button>" +
+        "<button type=\"button\" data-accept=\"yes\" aria-pressed=\"false\"><span class=\"accept-mark\">✅</span> 已验收</button>" +
+        "<button type=\"button\" data-accept=\"no\" aria-pressed=\"false\">未验收</button>" +
+        "</div>"
+      );
+    }
+
+    function bindAcceptFilter(toolbar, apply) {
+      if (!toolbar) return;
+      toolbar.querySelectorAll("[data-accept]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const mode = btn.getAttribute("data-accept");
+          toolbar.querySelectorAll("[data-accept]").forEach(function (item) {
+            item.setAttribute("aria-pressed", item === btn ? "true" : "false");
+          });
+          apply(mode);
+        });
+      });
+    }
+
+    function acceptModeOf(toolbar) {
+      const pressed = toolbar && toolbar.querySelector("[data-accept][aria-pressed=\"true\"]");
+      return (pressed && pressed.getAttribute("data-accept")) || "all";
+    }
+
+    function rowHiddenByAccept(tr, mode) {
+      const accepted = tr.getAttribute("data-accepted") === "1";
+      if (mode === "yes") return !accepted;
+      if (mode === "no") return accepted;
+      return false;
+    }
+
+    function renderTable(title, headers, rows, options) {
+      options = options || {};
       const head = headers.map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("");
       const body = rows.map(function (row) {
         const pct = Number(row.percentValue) || 0;
+        const accepted = !!row.accepted;
         return (
-          "<tr style=\"--pct:" + pct + "%\">" +
+          "<tr style=\"--pct:" + pct + "%\" data-accepted=\"" + (accepted ? "1" : "0") + "\">" +
           "<td>" + esc(row.name) + "</td>" +
           "<td class=\"num\">" + esc(row.mapped + "/" + row.total) + "</td>" +
           "<td class=\"num\">" + esc(row.percent) + "</td>" +
-          "<td class=\"mark\">" + (row.accepted ? "✅" : "") + "</td>" +
+          "<td class=\"mark\">" + acceptMark(accepted) + "</td>" +
           "<td>" + esc(row.note) + "</td>" +
           "</tr>"
         );
       }).join("");
+      const bar = options.acceptFilter
+        ? "<div class=\"table-toolbar\">" + renderAcceptFilter() + "</div>"
+        : "";
+      const idAttr = options.tableId ? " id=\"" + options.tableId + "\"" : "";
       return (
         "<h2>" + esc(title) + "</h2>" +
-        "<table class=\"coverage\"><thead><tr>" + head + "</tr></thead><tbody>" +
+        bar +
+        "<table class=\"coverage\"" + idAttr + "><thead><tr>" + head + "</tr></thead><tbody>" +
         body + "</tbody></table>"
       );
     }
@@ -625,20 +719,25 @@
       const head = headers.map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("");
       const body = rows.map(function (row) {
         const pct = Number(row.percentValue) || 0;
+        const accepted = !!row.accepted;
         return (
-          "<tr style=\"--pct:" + pct + "%\">" +
+          "<tr style=\"--pct:" + pct + "%\" data-accepted=\"" + (accepted ? "1" : "0") + "\">" +
           "<td>" + esc(row.nameZh || row.name) + "</td>" +
           "<td>" + esc(row.name) + "</td>" +
           "<td class=\"num\">" + esc(row.mapped + "/" + row.total) + "</td>" +
           "<td class=\"num\">" + esc(row.percent) + "</td>" +
-          "<td class=\"mark\">" + (row.accepted ? "✅" : "") + "</td>" +
+          "<td class=\"mark\">" + acceptMark(accepted) + "</td>" +
           "<td>" + esc(row.note) + "</td>" +
           "</tr>"
         );
       }).join("");
       return (
         "<h2>Unicode 区块</h2>" +
-        "<table class=\"coverage\"><thead><tr>" + head + "</tr></thead><tbody>" +
+        "<div class=\"table-toolbar\" id=\"block-toolbar\">" +
+        "<input id=\"block-filter\" type=\"search\" placeholder=\"筛选区块，例如 制表符、Box Drawing 或 2500\" />" +
+        renderAcceptFilter() +
+        "</div>" +
+        "<table class=\"coverage\" id=\"coverage-blocks\"><thead><tr>" + head + "</tr></thead><tbody>" +
         body + "</tbody></table>"
       );
     }
@@ -650,29 +749,44 @@
         "未找到 coverage.js。请运行 python scripts/build.py 后再打开 dist/preview.html。";
     } else {
       root.innerHTML =
-        "<p class=\"meta\">Unicode " + esc(data.unicodeVersion) + " · 行背景宽度等于覆盖率 · 验收列为 ✅ 表示该集合已全部覆盖</p>" +
+        "<p class=\"meta\">Unicode " + esc(data.unicodeVersion) +
+        " · 行背景宽度等于覆盖率 · 验收列为 <span class=\"accept-mark\">✅</span> 表示该集合已全部覆盖</p>" +
         renderTable("总览", ["项目", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.overview) +
         renderTable("CJK", ["集合", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.cjk) +
-        renderTable("Unicode 区段", ["区段", "已覆盖 / 集合", "覆盖率", "验收", "口径"], data.unicode) +
-        "<p class=\"meta\">口径为 Unicode Blocks.txt。中文名称为通行译法，不是 Unicode 官方名称。可用输入框筛选中文、英文或码位范围。</p>" +
-        "<input id=\"block-filter\" type=\"search\" placeholder=\"筛选区块，例如 制表符、Box Drawing 或 2500\" />" +
+        renderTable("Unicode 区段", ["区段", "已覆盖 / 集合", "覆盖率", "验收", "口径"], data.unicode, {
+          acceptFilter: true,
+          tableId: "coverage-unicode",
+        }) +
+        "<p class=\"meta\">口径为 Unicode Blocks.txt。中文名称为通行译法，不是 Unicode 官方名称。可用输入框筛选中文、英文或码位范围，并用验收筛选只看已通过或未通过的区块。</p>" +
         renderBlockTable(data.blocks || []) +
         (data.emoji ? renderTable("表情", ["集合", "已覆盖 / 集合", "覆盖率", "验收", "说明"], data.emoji) : "");
-      const filter = document.getElementById("block-filter");
-      const tables = root.querySelectorAll("table.coverage");
-      let blockTable = null;
-      tables.forEach(function (table) {
-        const first = table.querySelector("th");
-        if (first && first.textContent === "中文名称") blockTable = table;
-      });
-      if (filter && blockTable && blockTable.tBodies && blockTable.tBodies[0]) {
-        const rows = Array.prototype.slice.call(blockTable.tBodies[0].rows);
-        filter.addEventListener("input", function () {
-          const q = filter.value.trim().toLowerCase();
-          rows.forEach(function (tr) {
-            tr.hidden = q !== "" && tr.textContent.toLowerCase().indexOf(q) < 0;
+
+      const unicodeTable = document.getElementById("coverage-unicode");
+      if (unicodeTable && unicodeTable.tBodies[0]) {
+        const unicodeRows = Array.prototype.slice.call(unicodeTable.tBodies[0].rows);
+        const unicodeBar = unicodeTable.previousElementSibling;
+        bindAcceptFilter(unicodeBar, function (mode) {
+          unicodeRows.forEach(function (tr) {
+            tr.hidden = rowHiddenByAccept(tr, mode);
           });
         });
+      }
+
+      const blockTable = document.getElementById("coverage-blocks");
+      const blockToolbar = document.getElementById("block-toolbar");
+      const filter = document.getElementById("block-filter");
+      if (blockTable && blockTable.tBodies[0] && blockToolbar) {
+        const blockRows = Array.prototype.slice.call(blockTable.tBodies[0].rows);
+        function applyBlockFilter() {
+          const q = (filter && filter.value || "").trim().toLowerCase();
+          const mode = acceptModeOf(blockToolbar);
+          blockRows.forEach(function (tr) {
+            const textMiss = q !== "" && tr.textContent.toLowerCase().indexOf(q) < 0;
+            tr.hidden = textMiss || rowHiddenByAccept(tr, mode);
+          });
+        }
+        bindAcceptFilter(blockToolbar, function () { applyBlockFilter(); });
+        if (filter) filter.addEventListener("input", applyBlockFilter);
       }
       renderCatalog(data.catalog);
     }
@@ -691,12 +805,17 @@
       const pageSize = catalog.pageSize || 512;
       const cols = catalog.cols || 16;
       const filterInput = document.getElementById("catalog-filter");
+      const acceptBar = document.getElementById("catalog-accept");
       grid.style.gridTemplateColumns = "repeat(" + cols + ", 2.1em)";
       let visible = catalog.blocks.map(function (_, index) { return index; });
       let selected = 0;
       let page = 0;
       let open = false;
       let activePos = 0;
+
+      function isAccepted(block) {
+        return !!(block && block.assigned > 0 && block.mapped === block.assigned);
+      }
 
       function coveragePct(block) {
         if (!block || !block.assigned) return 0;
@@ -716,7 +835,19 @@
 
       function syncToggle() {
         const block = selected >= 0 ? catalog.blocks[selected] : null;
-        toggle.textContent = block ? labelFor(block) : "没有匹配的区块";
+        toggle.replaceChildren();
+        if (!block) {
+          toggle.appendChild(document.createTextNode("没有匹配的区块"));
+        } else {
+          if (isAccepted(block)) {
+            const mark = document.createElement("span");
+            mark.className = "accept-mark";
+            mark.textContent = "✅";
+            toggle.appendChild(mark);
+            toggle.appendChild(document.createTextNode(" "));
+          }
+          toggle.appendChild(document.createTextNode(labelFor(block)));
+        }
         toggle.style.setProperty("--pct", coveragePct(block) + "%");
         toggle.disabled = !block;
       }
@@ -735,7 +866,14 @@
           item.setAttribute("role", "option");
           item.dataset.index = String(index);
           item.style.setProperty("--pct", coveragePct(block) + "%");
-          item.textContent = labelFor(block);
+          if (isAccepted(block)) {
+            const mark = document.createElement("span");
+            mark.className = "accept-mark";
+            mark.textContent = "✅";
+            item.appendChild(mark);
+            item.appendChild(document.createTextNode(" "));
+          }
+          item.appendChild(document.createTextNode(labelFor(block)));
           item.setAttribute("aria-selected", index === selected ? "true" : "false");
           item.addEventListener("mousedown", function (ev) { ev.preventDefault(); });
           item.addEventListener("click", function () {
@@ -775,10 +913,15 @@
 
       function applyFilter() {
         const q = (filterInput && filterInput.value || "").trim().toLowerCase();
+        const mode = acceptModeOf(acceptBar);
         visible = [];
         catalog.blocks.forEach(function (block, index) {
           const hay = ((block.nameZh || "") + " " + block.name + " " + block.range).toLowerCase();
-          if (q === "" || hay.indexOf(q) >= 0) visible.push(index);
+          if (q !== "" && hay.indexOf(q) < 0) return;
+          const ok = isAccepted(block);
+          if (mode === "yes" && !ok) return;
+          if (mode === "no" && ok) return;
+          visible.push(index);
         });
         if (visible.indexOf(selected) < 0) {
           selected = visible.length ? visible[0] : -1;
@@ -896,6 +1039,7 @@
       prev.addEventListener("click", function () { page -= 1; draw(); });
       next.addEventListener("click", function () { page += 1; draw(); });
       if (filterInput) filterInput.addEventListener("input", applyFilter);
+      bindAcceptFilter(acceptBar, function () { applyFilter(); });
       const stackBtns = [
         { id: "catalog-stack-mono", cls: "" },
         { id: "catalog-stack-3d", cls: "stack-3d" },
