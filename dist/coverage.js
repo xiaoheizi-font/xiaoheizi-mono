@@ -361,6 +361,22 @@ window.XIAOHEIZI_COVERAGE = {
       "percentValue": 97.34
     },
     {
+      "name": "区域指示符 · 小黑字表情",
+      "note": "U+1F1E6–1F1FF 国旗字母",
+      "mapped": 26,
+      "total": 26,
+      "percent": "100.00%",
+      "percentValue": 100.0
+    },
+    {
+      "name": "区域指示符 · 小黑字表情微软",
+      "note": "U+1F1E6–1F1FF 国旗字母",
+      "mapped": 0,
+      "total": 26,
+      "percent": "0.00%",
+      "percentValue": 0.0
+    },
+    {
       "name": "杂项符号及象形文字 · 微软",
       "note": "U+1F300–1F5FF",
       "mapped": 631,

@@ -387,6 +387,16 @@ def emoji_coverage(regular_cmap: dict[int, str], emoji_cmaps: list[tuple[str, di
                 ep,
             )
         )
+    ri = frozenset(range(0x1F1E6, 0x1F200))
+    for label, cmap in emoji_cmaps:
+        rows.append(
+            pack_coverage_row(
+                cmap,
+                f"区域指示符 · {label}",
+                "U+1F1E6–1F1FF 国旗字母",
+                ri,
+            )
+        )
     ms_cmap = None
     for label, cmap in emoji_cmaps:
         if "微软" in label:
@@ -1086,6 +1096,9 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
         + list(range(0x2900, 0x2980))
         + list(range(0x2B00, 0x2C00))
         + [0x2E3A, 0x2E3B, 0x3000, 0x3030, 0x303D, 0x3297, 0x3299]
+        + list(range(0x2460, 0x2500))
+        + list(range(0x3200, 0x3300))
+        + list(range(0xFF00, 0xFFEF))
         + list(range(0x1F170, 0x1F240)),
     )
     sub.subset(tiny)

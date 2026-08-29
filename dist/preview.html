@@ -143,6 +143,12 @@
 │😀🦀🎉  │📁🚀🔥  │
 └────────┴────────┘
 
+┌────────┬────────┬────────┐
+│①②③     │ⓐⓑⓒ     │⑴⑵⑶     │
+│ＡＢＣ  │１２    │Ｗｉｄ  │
+│㉑㉒    │㊀㊁    │Ａ１    │
+└────────┴────────┴────────┘
+
 ╔════════╦════════╗
 ║OK      ║否      ║
 ║#inc    ║コード  ║
@@ -206,6 +212,31 @@
 │MS      │微软    │
 └────────┴────────┘</pre>
       <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS"</code>。等宽在前，缺的彩色字回落到微软 Fluent。与本页正文同一套栈。</p>
+    </div>
+  </div>
+
+  <h2>国旗</h2>
+  <p>国旗不是单码位，而是两个区域指示符连成一图（例如 <code>🇨🇳</code> = <code>U+1F1E8</code> + <code>U+1F1F3</code>）。连成后一枚占 <strong>1 em / 2 格</strong>，与 <code>😀</code> 相同。谷歌 Noto 有连字，竖线应对齐。微软 Fluent 不收录国旗，这一档会缺字回退（常见是两块字母砖，或落到系统表情），竖线可能不齐，这是预期。</p>
+  <div class="tabs" data-tabs>
+    <div class="tab-bar" role="tablist">
+      <button type="button" role="tab" aria-selected="true">谷歌 Noto</button>
+      <button type="button" role="tab" aria-selected="false">微软 Fluent</button>
+    </div>
+    <div class="tab-panel">
+      <pre class="emoji-noto">┌────────┬────────┐
+│🇨🇳🇯🇵🇺🇸  │🇬🇧🇰🇷🇫🇷  │
+│🇨🇳      │中国    │
+│Noto    │谷歌    │
+└────────┴────────┘</pre>
+      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji"</code>。等宽在前，国旗回落到谷歌 Noto。三枚旗共 6 格，右侧两个空格；单枚旗 2 格，与「中国」对齐。</p>
+    </div>
+    <div class="tab-panel" hidden>
+      <pre class="emoji-ms">┌────────┬────────┐
+│🇨🇳🇯🇵🇺🇸  │🇬🇧🇰🇷🇫🇷  │
+│🇨🇳      │中国    │
+│MS      │微软    │
+└────────┴────────┘</pre>
+      <p class="tab-note"><code>font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji MS"</code>。Fluent 没有国旗字形。对照上一档即可看出缺字回退。</p>
     </div>
   </div>
 
