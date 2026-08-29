@@ -355,26 +355,42 @@ window.XIAOHEIZI_COVERAGE = {
     {
       "name": "Emoji_Presentation · 小黑字表情微软",
       "note": "配套表情字体",
-      "mapped": 1173,
+      "mapped": 1199,
       "total": 1205,
-      "percent": "97.34%",
-      "percentValue": 97.34
+      "percent": "99.50%",
+      "percentValue": 99.5
     },
     {
       "name": "区域指示符 · 小黑字表情",
-      "note": "U+1F1E6–1F1FF 国旗字母",
+      "note": "U+1F1E6–1F1FF 共 26 个字母，不是旗面",
       "mapped": 26,
       "total": 26,
       "percent": "100.00%",
       "percentValue": 100.0
     },
     {
+      "name": "国旗连字 · 小黑字表情",
+      "note": "GSUB 两枚区域指示符连成一图",
+      "mapped": 259,
+      "total": 259,
+      "percent": "100.00%",
+      "percentValue": 100.0
+    },
+    {
       "name": "区域指示符 · 小黑字表情微软",
-      "note": "U+1F1E6–1F1FF 国旗字母",
-      "mapped": 0,
+      "note": "U+1F1E6–1F1FF 共 26 个字母，不是旗面",
+      "mapped": 26,
       "total": 26,
-      "percent": "0.00%",
-      "percentValue": 0.0
+      "percent": "100.00%",
+      "percentValue": 100.0
+    },
+    {
+      "name": "国旗连字 · 小黑字表情微软",
+      "note": "GSUB 两枚区域指示符连成一图",
+      "mapped": 259,
+      "total": 259,
+      "percent": "100.00%",
+      "percentValue": 100.0
     },
     {
       "name": "杂项符号及象形文字 · 微软",

@@ -10,6 +10,7 @@ Fluent Color TTF compilation portions Copyright Tetsunori Nakayama, MIT License 
 Portions Copyright (c) 2015-2025, Renzhi Li (aka. Belleve Invis).
 Portions Copyright (c) 2014-2021 Adobe Systems Incorporated, with Reserved Font Name 'Source'.
 Portions from Iosevka / Source Han Sans as included in Sarasa Gothic.
+Portions from Source Han Sans SC Regular (https://github.com/adobe-fonts/source-han-sans) for the enclosed alphanumerics U+2460–U+24FF.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 https://openfontlicense.org

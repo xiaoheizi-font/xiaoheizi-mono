@@ -22,11 +22,17 @@ FLUENT_TTF = (
 )
 FLUENT_MIT_MS = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/LICENSE"
 FLUENT_MIT_BUILD = "https://raw.githubusercontent.com/tetunori/fluent-emoji-webfont/main/LICENSE"
+# 规范 §2 例外表 / §3：带圈字母数字 U+2460–24FF 取思源黑体 SC Regular（单一 OTF，非 SuperOTC）
+SOURCE_HAN_OTF = (
+    "https://github.com/adobe-fonts/source-han-sans/raw/release/OTF/SimplifiedChinese/"
+    "SourceHanSansSC-Regular.otf"
+)
 
 JBM_TTF = VENDOR / "jetbrains-mono" / "fonts" / "ttf" / "JetBrainsMonoNL-Regular.ttf"
 SARASA_TTF = VENDOR / "sarasa-fixed-sc" / "SarasaFixedSC-Regular.ttf"
 NOTO_TTF = VENDOR / "noto-emoji" / "Noto-COLRv1.ttf"
 FLUENT_PATH = VENDOR / "fluent-emoji" / "FluentEmojiColor.ttf"
+SOURCE_HAN_PATH = VENDOR / "source-han-sans" / "SourceHanSansSC-Regular.otf"
 
 UA = {"User-Agent": "xiaoheizi-mono-fetch/0.1"}
 
@@ -112,13 +118,45 @@ def fetch_fluent() -> None:
         download(FLUENT_MIT_BUILD, build)
 
 
+def fetch_source_han() -> None:
+    """思源黑体 SC Regular：带圈字母数字按 1 em 画，覆盖半格稿（规范 §2 例外表）。"""
+    if not SOURCE_HAN_PATH.exists():
+        download(SOURCE_HAN_OTF, SOURCE_HAN_PATH)
+    # 断言：cmap 有 U+2460；推进 = unitsPerEm（1 em）；轮廓宽度 ≥ 0.8 em。
+    # 不合格即退出，禁止拿半格稿充数。
+    from fontTools.ttLib import TTFont
+    from fontTools.pens.boundsPen import BoundsPen
+
+    font = TTFont(SOURCE_HAN_PATH)
+    cmap = font.getBestCmap()
+    if 0x2460 not in cmap:
+        raise SystemExit("思源缺少 U+2460，上游不合格")
+    upem = font["head"].unitsPerEm
+    gname = cmap[0x2460]
+    adv, _lsb = font["hmtx"][gname]
+    if abs(adv - upem) > upem * 0.01:
+        raise SystemExit(f"思源 U+2460 推进 {adv} 不是 1 em（upem {upem}），上游不合格")
+    pen = BoundsPen(font.getGlyphSet())
+    font.getGlyphSet()[gname].draw(pen)
+    width = pen.bounds[2] - pen.bounds[0] if pen.bounds else 0
+    if width < upem * 0.8:
+        raise SystemExit(f"思源 U+2460 轮廓宽度 {width} 小于 0.8 em，疑似半格稿，上游不合格")
+    print(f"source han ok: U+2460 adv={adv} upem={upem} width={width:.0f}")
+    font.close()
+
+
 def main() -> None:
     VENDOR.mkdir(parents=True, exist_ok=True)
     fetch_jetbrains()
     fetch_sarasa()
     fetch_noto()
     fetch_fluent()
-    missing = [p for p in (JBM_TTF, SARASA_TTF, NOTO_TTF, FLUENT_PATH) if not p.exists()]
+    fetch_source_han()
+    missing = [
+        p
+        for p in (JBM_TTF, SARASA_TTF, NOTO_TTF, FLUENT_PATH, SOURCE_HAN_PATH)
+        if not p.exists()
+    ]
     if missing:
         raise SystemExit("上游仍缺失：" + ", ".join(str(p) for p in missing))
     print("vendor ready")

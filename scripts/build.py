@@ -10,6 +10,7 @@ from functools import cache
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
+from fontTools.ttLib.tables import otTables as ot
 from fontTools.ttLib.tables._g_l_y_f import flagOverlapSimple
 from fontTools.ttLib.tables.ttProgram import Program
 
@@ -21,6 +22,7 @@ PREVIEW_HTML = ROOT / "preview" / "preview.html"
 SARASA = VENDOR / "sarasa-fixed-sc" / "SarasaFixedSC-Regular.ttf"
 JBM = VENDOR / "jetbrains-mono" / "fonts" / "ttf" / "JetBrainsMonoNL-Regular.ttf"
 JBM_OFL = VENDOR / "jetbrains-mono" / "OFL.txt"
+SOURCE_HAN = VENDOR / "source-han-sans" / "SourceHanSansSC-Regular.otf"
 
 # 规范 §6：配套表情字体，不并入 Regular；Regular 剔除 Emoji_Presentation
 NOTO_EMOJI = VENDOR / "noto-emoji" / "Noto-COLRv1.ttf"
@@ -49,8 +51,9 @@ EMOJI_VARIANTS = (
         "full_en": "Xiaoheizi Emoji MS Regular",
         "out_name": "XiaoheiziEmojiMS-Regular.ttf",
         "preview_name": "preview-emoji-ms.ttf",
-        "copyright": "Copyright 2026 小黑字. Artwork: Microsoft Fluent Emoji (MIT). Font compilation portions: tetunori/fluent-emoji-webfont (MIT).",
-        "license_notice": "Font names under SIL OFL 1.1. Fluent Emoji artwork under MIT. See dist/FluentEmoji-MIT-Microsoft.txt.",
+        "flags_from_noto": True,
+        "copyright": "Copyright 2026 小黑字. Artwork: Microsoft Fluent Emoji (MIT); flag glyphs from Noto Emoji (Google LLC, SIL OFL 1.1). Font compilation portions: tetunori/fluent-emoji-webfont (MIT).",
+        "license_notice": "Font names under SIL OFL 1.1. Fluent Emoji artwork under MIT. Flag portions from Noto Emoji under SIL OFL 1.1. See license files in dist/.",
     },
 )
 
@@ -90,6 +93,12 @@ NAMED_EM_RATIO = {
     0x2E3A: 2.0,       # TWO-EM DASH
     0x2E3B: 3.0,       # THREE-EM DASH
 }
+
+# 规范 §2 例外表：带圈字母数字按 1 em（2 格），来源思源，覆盖更纱 Fixed 的半格稿。
+# 其余 Ambiguous 仍 0.5 em，不得扩大。
+ENCLOSED_ALNUM = (0x2460, 0x24FF)
+SOURCE_HAN_PREFIX = "shs."
+NOTO_PREFIX = "noto."
 
 SCALE = 500 / 600  # JBM 0.6em → 半个汉字
 PREFIX = "jbm."
@@ -281,6 +290,18 @@ def pack_coverage_row(cmap: dict[int, str], name: str, note: str, universe) -> d
     }
 
 
+def pack_count_row(name: str, note: str, mapped: int, total: int) -> dict:
+    value = pct_value(mapped, total)
+    return {
+        "name": name,
+        "note": note,
+        "mapped": mapped,
+        "total": total,
+        "percent": f"{value:.2f}%",
+        "percentValue": value,
+    }
+
+
 def product_coverage(cmap: dict[int, str]) -> dict:
     """规范 §4.2 产品向分集表。"""
     bmp_mapped = sum(1 for cp in cmap if cp <= 0xFFFF)
@@ -367,7 +388,10 @@ def product_coverage(cmap: dict[int, str]) -> dict:
     }
 
 
-def emoji_coverage(regular_cmap: dict[int, str], emoji_cmaps: list[tuple[str, dict]]) -> list[dict]:
+def emoji_coverage(
+    regular_cmap: dict[int, str],
+    emoji_stats: list[tuple[str, dict, int]],
+) -> list[dict]:
     """配套表情字体覆盖；Regular 的 Emoji_Presentation 故意为 0。"""
     ep = emoji_presentation_set()
     rows = [
@@ -378,7 +402,7 @@ def emoji_coverage(regular_cmap: dict[int, str], emoji_cmaps: list[tuple[str, di
             ep,
         )
     ]
-    for label, cmap in emoji_cmaps:
+    for label, cmap, _nliga in emoji_stats:
         rows.append(
             pack_coverage_row(
                 cmap,
@@ -388,22 +412,34 @@ def emoji_coverage(regular_cmap: dict[int, str], emoji_cmaps: list[tuple[str, di
             )
         )
     ri = frozenset(range(0x1F1E6, 0x1F200))
-    for label, cmap in emoji_cmaps:
+    flag_total = 0
+    for _label, _cmap, nliga in emoji_stats:
+        if nliga > flag_total:
+            flag_total = nliga
+    for label, cmap, nliga in emoji_stats:
         rows.append(
             pack_coverage_row(
                 cmap,
                 f"区域指示符 · {label}",
-                "U+1F1E6–1F1FF 国旗字母",
+                "U+1F1E6–1F1FF 共 26 个字母，不是旗面",
                 ri,
             )
         )
+        rows.append(
+            pack_count_row(
+                f"国旗连字 · {label}",
+                "GSUB 两枚区域指示符连成一图",
+                nliga,
+                flag_total or nliga,
+            )
+        )
     ms_cmap = None
-    for label, cmap in emoji_cmaps:
+    for label, cmap, _nliga in emoji_stats:
         if "微软" in label:
             ms_cmap = cmap
             break
-    if ms_cmap is None and emoji_cmaps:
-        ms_cmap = emoji_cmaps[-1][1]
+    if ms_cmap is None and emoji_stats:
+        ms_cmap = emoji_stats[-1][1]
     if ms_cmap is not None:
         blocks = [
             ("杂项符号及象形文字 · 微软", "U+1F300–1F5FF", 0x1F300, 0x1F5FF),
@@ -514,13 +550,16 @@ def strip_non_emoji_from_emoji_font(font: TTFont) -> int:
 
 def collect_names(font: TTFont, unicodes: set[int]) -> set[str]:
     cmap = font.getBestCmap()
-    glyf = font["glyf"]
+    glyf = font["glyf"] if "glyf" in font else None
     names: set[str] = set()
 
     def add(name: str) -> None:
         if name in names:
             return
         names.add(name)
+        # CFF 字体没有 glyf 组件；组件引用在画出时自然展开
+        if glyf is None:
+            return
         glyph = glyf[name]
         if glyph.isComposite():
             for comp in glyph.components:
@@ -703,6 +742,440 @@ def set_emoji_names(font: TTFont, variant: dict) -> None:
     font["post"].isFixedPitch = 1
 
 
+# COLR 前景色：不指向 CPAL 条目，合并调色板时不得加偏移
+FOREGROUND_PALETTE_INDEX = 0xFFFF
+_NESTED_PAINT_ATTRS = ("Paint", "SourcePaint", "BackdropPaint")
+
+
+def _iter_nested_paints(paint):
+    """遍历画笔节点上嵌套的 Paint / SourcePaint / BackdropPaint。"""
+    for attr in _NESTED_PAINT_ATTRS:
+        child = getattr(paint, attr, None)
+        if child is not None:
+            yield child
+
+
+def _walk_paint(paint, callback, seen: set[int]) -> None:
+    """深度遍历 COLRv1 画笔树，对每个画笔节点调用 callback。
+
+    不走进 PaintColrLayers 的全局 LayerList；那部分须由调用方按 FirstLayerIndex 另走。
+    """
+    pid = id(paint)
+    if pid in seen:
+        return
+    seen.add(pid)
+    callback(paint)
+    for child in _iter_nested_paints(paint):
+        _walk_paint(child, callback, seen)
+
+
+def _remap_paint_palettes(paint, offset: int) -> None:
+    """把画笔里的调色板索引整体平移（合并两家 CPAL 时用）。"""
+    if hasattr(paint, "PaletteIndex"):
+        pal = paint.PaletteIndex
+        if pal != FOREGROUND_PALETTE_INDEX:
+            paint.PaletteIndex = pal + offset
+    line = getattr(paint, "ColorLine", None)
+    if line is not None:
+        for stop in line.ColorStop:
+            if stop.PaletteIndex != FOREGROUND_PALETTE_INDEX:
+                stop.PaletteIndex += offset
+
+
+def _collect_paint_glyph_refs(
+    paint,
+    layer_list,
+    glyphs_10: set[str],
+    glyphs_11: set[str],
+    seen_layers: set[int],
+) -> None:
+    """收集画笔树及 PaintColrLayers 所指 LayerList 切片里的字形名。
+
+    Format 10（PaintGlyph）只取轮廓；Format 11（PaintColrGlyph）才是另一枚彩色基字。
+    """
+
+    def on_paint(p) -> None:
+        fmt = getattr(p, "Format", None)
+        if fmt == 10:
+            name = getattr(p, "Glyph", None)
+            if name:
+                glyphs_10.add(name)
+        elif fmt == 11:
+            name = getattr(p, "Glyph", None)
+            if name:
+                glyphs_11.add(name)
+        if fmt == 1 and layer_list is not None:
+            first = int(p.FirstLayerIndex)
+            num = int(p.NumLayers)
+            for i in range(first, first + num):
+                if i in seen_layers:
+                    continue
+                seen_layers.add(i)
+                _collect_paint_glyph_refs(
+                    layer_list.Paint[i], layer_list, glyphs_10, glyphs_11, seen_layers
+                )
+
+    _walk_paint(paint, on_paint, set())
+
+
+def _glyf_closure(src_glyf, names: set[str]) -> set[str]:
+    """把复合字形的构件一并纳入闭包。"""
+    out = set(names)
+    stack = list(names)
+    while stack:
+        n = stack.pop()
+        glyph = src_glyf[n]
+        if not glyph.isComposite():
+            continue
+        for comp in glyph.components:
+            if comp.glyphName not in out:
+                out.add(comp.glyphName)
+                stack.append(comp.glyphName)
+    return out
+
+
+def _remap_paint_tree(
+    paint,
+    rename: dict[str, str],
+    pal_offset: int,
+    src_layers,
+    dest_layers,
+    slice_cache: dict[tuple[int, int], int],
+) -> None:
+    """就地重映射一份已 deepcopy 的画笔：调色板、字形名、PaintColrLayers 索引。
+
+    Format 1 引用的 Noto LayerList 切片必须先在 dest 里占住连续槽位，再递归重映射
+    切片内的嵌套 Format 1。若先递归拷内层再 extend 本层，FirstLayerIndex 会指到内层
+    条目（美国旗只剩 2 条底，星星丢失）。同一 (FirstLayerIndex, NumLayers) 只拷一次。
+    """
+
+    def remap_one(p) -> None:
+        _remap_paint_palettes(p, pal_offset)
+        fmt = getattr(p, "Format", None)
+        if fmt in (10, 11):
+            old = getattr(p, "Glyph", None)
+            if old is None or old not in rename:
+                raise SystemExit(f"COLR 引用了未拷贝的字形：{old}")
+            p.Glyph = rename[old]
+        for child in _iter_nested_paints(p):
+            remap_one(child)
+        if fmt != 1:
+            return
+        key = (int(p.FirstLayerIndex), int(p.NumLayers))
+        cached = slice_cache.get(key)
+        if cached is not None:
+            p.FirstLayerIndex = cached
+            return
+        first, num = key
+        copied = [copy.deepcopy(src_layers.Paint[i]) for i in range(first, first + num)]
+        new_first = len(dest_layers.Paint)
+        dest_layers.Paint.extend(copied)
+        slice_cache[key] = new_first
+        p.FirstLayerIndex = new_first
+        for i in range(new_first, new_first + num):
+            remap_one(dest_layers.Paint[i])
+
+    remap_one(paint)
+
+
+RI_LO, RI_HI = 0x1F1E6, 0x1F1FF
+
+
+def _find_ri_ligatures(noto: TTFont, ri_glyphs: set[str]) -> dict[str, list]:
+    """在 Noto GSUB 里找「首字为区域指示符」的连字子表，返回 {首字形: [连字]}。"""
+    gsub = noto["GSUB"].table
+    for lk in gsub.LookupList.Lookup:
+        if lk.LookupType != 4:
+            continue
+        for st in lk.SubTable:
+            ligs = getattr(st, "ligatures", None) or {}
+            if any(k in ri_glyphs for k in ligs):
+                return {k: v for k, v in ligs.items() if k in ri_glyphs}
+    raise SystemExit("Noto 中未找到区域指示符连字（LookupType 4）")
+
+
+def _find_ri_liga_glyph(font: TTFont, first: str, component: str) -> str | None:
+    """在 GSUB LookupType 4 里找 first+component 的连字字形名。"""
+    for lu in font["GSUB"].table.LookupList.Lookup:
+        if lu.LookupType != 4:
+            continue
+        for st in lu.SubTable:
+            ligs = getattr(st, "ligatures", None) or {}
+            if first not in ligs:
+                continue
+            for lig in ligs[first]:
+                if list(lig.Component) == [component]:
+                    return lig.LigGlyph
+    return None
+
+
+def _flag_colr_layers_are_paint_glyph(font: TTFont, first: str, component: str) -> bool:
+    """🇨🇳 的 PaintColrLayers 必须指向全是 PaintGlyph 的层（Noto 旗面）。
+
+    旧产物只拷了 BaseGlyph 画笔、没搬 LayerList，FirstLayerIndex 仍指向 Fluent 原层（夹杂 Format 12），
+    浏览器会把旗画成区域指示符字母砖。
+    """
+    liga = _find_ri_liga_glyph(font, first, component)
+    if not liga or "COLR" not in font:
+        return False
+    recs = {r.BaseGlyph: r.Paint for r in font["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord}
+    paint = recs.get(liga)
+    ll = font["COLR"].table.LayerList
+    if paint is None or ll is None:
+        return False
+    found = False
+    ok = True
+
+    def check(p) -> None:
+        nonlocal found, ok
+        if getattr(p, "Format", None) != 1:
+            return
+        found = True
+        start, num = int(p.FirstLayerIndex), int(p.NumLayers)
+        if start < 0 or start + num > len(ll.Paint):
+            ok = False
+            return
+        for i in range(start, start + num):
+            if getattr(ll.Paint[i], "Format", None) != 10:
+                ok = False
+
+    _walk_paint(paint, check, set())
+    return found and ok
+
+
+def _count_reachable_colr_layers(font: TTFont, first_cp: int, second_cp: int) -> int:
+    """统计某面旗 PaintColrLayers 能走到的 LayerList 条目数（含嵌套）。"""
+    cmap = font.getBestCmap()
+    g_a, g_b = cmap.get(first_cp), cmap.get(second_cp)
+    if not g_a or not g_b:
+        return 0
+    liga = _find_ri_liga_glyph(font, g_a, g_b)
+    if not liga or "COLR" not in font:
+        return 0
+    recs = {r.BaseGlyph: r.Paint for r in font["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord}
+    paint = recs.get(liga)
+    ll = font["COLR"].table.LayerList
+    if paint is None or ll is None:
+        return 0
+    seen: set[int] = set()
+
+    def walk(p) -> None:
+        if getattr(p, "Format", None) == 1:
+            start, num = int(p.FirstLayerIndex), int(p.NumLayers)
+            for i in range(start, start + num):
+                if i in seen or i < 0 or i >= len(ll.Paint):
+                    continue
+                seen.add(i)
+                walk(ll.Paint[i])
+        for child in _iter_nested_paints(p):
+            walk(child)
+
+    walk(paint)
+    return len(seen)
+
+
+def _count_ri_flag_ligatures(font: TTFont) -> int:
+    """GSUB 中「两枚区域指示符 → 一面旗」的连字个数。"""
+    cmap = font.getBestCmap()
+    ri = {cmap[cp] for cp in range(RI_LO, RI_HI + 1) if cp in cmap}
+    if not ri or "GSUB" not in font:
+        return 0
+    n = 0
+    for lu in font["GSUB"].table.LookupList.Lookup:
+        if lu.LookupType != 4:
+            continue
+        for st in lu.SubTable:
+            ligs = getattr(st, "ligatures", None) or {}
+            for first, lst in ligs.items():
+                if first not in ri:
+                    continue
+                for lig in lst:
+                    if lig.Component and all(c in ri for c in lig.Component):
+                        n += 1
+    return n
+
+
+def merge_noto_flags(dest: TTFont) -> None:
+    """规范 §6：Fluent 不收录国旗，用已缩到 upem 1000 的 Noto 补字。
+
+    拷入 U+1F1E6–1F1FF 的 glyf / hmtx（1000）/ COLR 画笔（含 LayerList 切片）与 RI 连字；
+    Noto 调色板条目追加到 CPAL，拷入画笔的 palette index 重映射（0xFFFF 除外）；
+    国旗 lookup 挂到 ccmp 最前；不拷 Noto 的 ASCII，不覆盖 Fluent 已有码位。
+    """
+    product = DIST / "XiaoheiziEmoji-Regular.ttf"
+    if product.exists():
+        # 与谷歌档同一份已缩到 1000 的 Noto，避免再 fit 一遍
+        print("flag source", product.name)
+        noto = TTFont(product, recalcBBoxes=True, recalcTimestamp=False)
+    else:
+        noto = TTFont(NOTO_EMOJI, recalcBBoxes=True, recalcTimestamp=False)
+        for tag in ("CBDT", "CBLC", "SVG "):
+            if tag in noto:
+                del noto[tag]
+        fit_emoji_to_em(noto)
+
+    ncmap = noto.getBestCmap()
+    missing = [cp for cp in range(RI_LO, RI_HI + 1) if cp not in ncmap]
+    if missing:
+        raise SystemExit(f"Noto 缺少区域指示符：{[f'U+{c:04X}' for c in missing]}")
+    ri_glyphs = {ncmap[cp] for cp in range(RI_LO, RI_HI + 1)}
+    ri_ligs = _find_ri_ligatures(noto, ri_glyphs)
+
+    lig_entries: dict[str, list[tuple[str, tuple[str, ...]]]] = {}
+    lig_glyphs: set[str] = set()
+    for first, ligs in ri_ligs.items():
+        for lig in ligs:
+            if all(c in ri_glyphs for c in lig.Component):
+                lig_entries.setdefault(first, []).append(
+                    (lig.LigGlyph, tuple(lig.Component))
+                )
+                lig_glyphs.add(lig.LigGlyph)
+
+    need = ri_glyphs | lig_glyphs
+    ncolr = noto["COLR"].table
+    nrecs = {r.BaseGlyph: r for r in ncolr.BaseGlyphList.BaseGlyphPaintRecord}
+    if len(need) != len(need & nrecs.keys()):
+        raise SystemExit("Noto COLR 缺少旗字形记录")
+
+    colr_need = set(ri_glyphs | lig_glyphs)
+    pending = set(colr_need)
+    outline_refs: set[str] = set()
+    seen_layers: set[int] = set()
+    while pending:
+        g = pending.pop()
+        if g not in nrecs:
+            continue
+        acc10: set[str] = set()
+        acc11: set[str] = set()
+        _collect_paint_glyph_refs(nrecs[g].Paint, ncolr.LayerList, acc10, acc11, seen_layers)
+        outline_refs |= acc10
+        extra11 = acc11 - colr_need
+        if extra11:
+            colr_need |= extra11
+            pending |= extra11
+    need = _glyf_closure(noto["glyf"], colr_need | outline_refs)
+
+    rename = {n: NOTO_PREFIX + n.replace(".", "_") for n in need}
+
+    dst_glyf = dest["glyf"]
+    dst_hmtx = dest["hmtx"]
+    src_glyf = noto["glyf"]
+    order = list(dest.getGlyphOrder())
+    for old in sorted(need):
+        new = rename[old]
+        glyph = copy.deepcopy(src_glyf[old])
+        if glyph.isComposite():
+            for comp in glyph.components:
+                comp.glyphName = rename[comp.glyphName]
+        dst_glyf[new] = glyph
+        dst_hmtx[new] = noto["hmtx"][old]
+        order.append(new)
+    dest.setGlyphOrder(order)
+    dest["maxp"].numGlyphs = len(order)
+
+    # cmap：区域指示符在增补平面，只进 format 12/13 子表；不碰 Fluent 已有码位
+    for table in dest["cmap"].tables:
+        if not table.isUnicode() or table.format not in (12, 13):
+            continue
+        for cp in range(RI_LO, RI_HI + 1):
+            if cp not in table.cmap:
+                table.cmap[cp] = rename[ncmap[cp]]
+        table.data = None
+
+    # CPAL：追加 Noto 调色板条目，拷入画笔的 palette index 平移
+    dcpal = dest["CPAL"]
+    ncpal = noto["CPAL"]
+    offset = dcpal.numPaletteEntries
+    noto_entries = list(ncpal.palettes[0])
+    dcpal.palettes = [list(pal) + noto_entries for pal in dcpal.palettes]
+    dcpal.numPaletteEntries = len(dcpal.palettes[0])
+
+    # COLR：拷入旗字形的画笔记录；PaintColrLayers 的切片追加到 LayerList 并重映射索引
+    dcolr = dest["COLR"].table
+    if dcolr.LayerList is None:
+        dcolr.LayerList = ot.LayerList()
+        dcolr.LayerList.Paint = []
+    slice_cache: dict[tuple[int, int], int] = {}
+    layers_before = len(dcolr.LayerList.Paint)
+
+    for old in colr_need:
+        if old not in nrecs:
+            continue  # PaintGlyph 引用的辅助字形没有自己的画笔记录，只带轮廓
+        rec = copy.deepcopy(nrecs[old])
+        rec.BaseGlyph = rename[old]
+        _remap_paint_tree(
+            rec.Paint,
+            rename,
+            offset,
+            ncolr.LayerList,
+            dcolr.LayerList,
+            slice_cache,
+        )
+        dcolr.BaseGlyphList.BaseGlyphPaintRecord.append(rec)
+    if ncolr.ClipList is not None:
+        if dcolr.ClipList is None:
+            dcolr.ClipList = ot.ClipList()
+            dcolr.ClipList.format = 1
+            dcolr.ClipList.clips = {}
+        for key, box in ncolr.ClipList.clips.items():
+            if isinstance(key, str) and key in rename:
+                dcolr.ClipList.clips[rename[key]] = copy.deepcopy(box)
+            elif isinstance(key, tuple):
+                mapped = tuple(rename[k] for k in key if k in rename)
+                if len(mapped) == len(key):
+                    dcolr.ClipList.clips[mapped] = copy.deepcopy(box)
+
+    # GSUB：新建 LookupType 4 连字，插到现有 ccmp 最前（与 Noto 一致）
+    subtable = ot.LigatureSubst()
+    subtable.ligatures = {}
+    for first, entries in lig_entries.items():
+        ligs = []
+        for lig_name, comps in entries:
+            lig = ot.Ligature()
+            lig.LigGlyph = rename[lig_name]
+            lig.Component = [rename[c] for c in comps]
+            ligs.append(lig)
+        subtable.ligatures[rename[first]] = ligs
+    lookup = ot.Lookup()
+    lookup.LookupType = 4
+    lookup.LookupFlag = 0
+    lookup.SubTableCount = 1
+    lookup.SubTable = [subtable]
+    gsub = dest["GSUB"].table
+    new_idx = len(gsub.LookupList.Lookup)
+    gsub.LookupList.Lookup.append(lookup)
+    gsub.LookupList.LookupCount = new_idx + 1
+    ccmp_found = False
+    for fr in gsub.FeatureList.FeatureRecord:
+        if fr.FeatureTag != "ccmp":
+            continue
+        fr.Feature.LookupListIndex.insert(0, new_idx)
+        if hasattr(fr.Feature, "LookupCount"):
+            fr.Feature.LookupCount = len(fr.Feature.LookupListIndex)
+        ccmp_found = True
+    if not ccmp_found:
+        raise SystemExit("Fluent GSUB 无 ccmp，无法挂国旗连字")
+
+    if not _flag_colr_layers_are_paint_glyph(dest, rename[ncmap[0x1F1E8]], rename[ncmap[0x1F1F3]]):
+        raise SystemExit("国旗 COLR LayerList 重映射失败：🇨🇳 仍未指向 PaintGlyph 层")
+    us_layers = _count_reachable_colr_layers(dest, 0x1F1FA, 0x1F1F8)
+    if us_layers < 40:
+        raise SystemExit(f"国旗嵌套 LayerList 重映射失败：🇺🇸 只有 {us_layers} 层（应含星条）")
+
+    noto.close()
+    print(
+        "merged noto flags:",
+        len(need),
+        "glyphs;",
+        len(colr_need),
+        "colr bases;",
+        len(lig_glyphs),
+        "ligatures;",
+        len(dcolr.LayerList.Paint) - layers_before,
+        "colr layers",
+    )
+
+
 def build_emoji_variant(variant: dict) -> Path:
     src = Path(variant["src"])
     if not src.exists():
@@ -716,28 +1189,51 @@ def build_emoji_variant(variant: dict) -> Path:
     print("fit emoji to 1em", variant["family_en"])
     scale = fit_emoji_to_em(font)
     strip_non_emoji_from_emoji_font(font)
+    if variant.get("flags_from_noto"):
+        merge_noto_flags(font)
     set_emoji_names(font, variant)
     sanitize_for_ots(font)
     out = DIST / variant["out_name"]
     print("save", out, "scale", round(scale, 6))
     font.save(out)
+    if variant.get("flags_from_noto"):
+        check = TTFont(out)
+        cmap = check.getBestCmap()
+        ok = _flag_colr_layers_are_paint_glyph(check, cmap[0x1F1E8], cmap[0x1F1F3])
+        us_layers = _count_reachable_colr_layers(check, 0x1F1FA, 0x1F1F8)
+        check.close()
+        if not ok or us_layers < 40:
+            raise SystemExit(f"写出后国旗 COLR 仍不合格（🇺🇸 {us_layers} 层）")
     return out
 
 
-def emoji_needs_rebuild(paths: list[Path]) -> bool:
-    if not all(p.exists() for p in paths):
+def emoji_variant_needs_rebuild(variant: dict, path: Path) -> bool:
+    if not path.exists():
         return True
-    for path in paths:
-        font = TTFont(path)
+    font = TTFont(path)
+    try:
         upem = font["head"].unitsPerEm
         cmap = font.getBestCmap()
-        font.close()
         if upem != TARGET_UPEM:
             return True
         # 数字不应出现在表情 cmap；⚠ 这类可覆盖符号必须保留
         if 0x30 in cmap or 0x26A0 not in cmap:
             return True
-    return False
+        # 两套配套字体都必须有区域指示符（微软套由 Noto 补）
+        if 0x1F1E8 not in cmap:
+            return True
+        if variant.get("flags_from_noto"):
+            g_c = cmap.get(0x1F1E8)
+            g_n = cmap.get(0x1F1F3)
+            if not g_c or not g_n:
+                return True
+            if not _flag_colr_layers_are_paint_glyph(font, g_c, g_n):
+                return True
+            if _count_reachable_colr_layers(font, 0x1F1FA, 0x1F1F8) < 40:
+                return True
+        return False
+    finally:
+        font.close()
 
 
 def build_all_emoji() -> list[Path]:
@@ -793,6 +1289,65 @@ def strip_ligatures(font: TTFont) -> None:
             fr.Feature.LookupListIndex = []
 
 
+def overlay_source_han(base: TTFont, shs: TTFont) -> dict[str, str]:
+    """规范 §2 例外表：思源按 1 em 画的带圈字母数字覆盖更纱 Fixed 的半格稿。
+
+    思源是 CFF，逐字形转成 TrueType 轮廓拷入；推进保持 1 em，不做横向缩放。
+    """
+    from fontTools.pens.cu2quPen import Cu2QuPen
+    from fontTools.pens.ttGlyphPen import TTGlyphPen
+
+    src_cmap = shs.getBestCmap()
+    unicodes = assigned_enclosed_set() & set(src_cmap)
+    missing = assigned_enclosed_set() - set(src_cmap)
+    if missing:
+        raise SystemExit(f"思源缺少带圈字母数字码位：{sorted(f'U+{c:04X}' for c in missing)}")
+    names = collect_names(shs, unicodes)
+    rename = {n: SOURCE_HAN_PREFIX + n.replace(".", "_") for n in names}
+
+    src_glyphset = shs.getGlyphSet()
+    dst_glyf = base["glyf"]
+    dst_hmtx = base["hmtx"]
+    src_hmtx = shs["hmtx"]
+    shs_glyf = shs["glyf"] if "glyf" in shs else None
+    scale = TARGET_UPEM / shs["head"].unitsPerEm
+    order = list(base.getGlyphOrder())
+
+    for old in names:
+        new = rename[old]
+        src_glyph = shs_glyf[old] if shs_glyf is not None else None
+        if src_glyph is not None and src_glyph.isComposite():
+            raw = copy.deepcopy(src_glyph)
+            for comp in raw.components:
+                comp.glyphName = rename[comp.glyphName]
+                comp.x = round(comp.x * scale)
+                comp.y = round(comp.y * scale)
+            dst_glyf[new] = raw
+        else:
+            pen = TTGlyphPen(dst_glyf)
+            cu2qu = Cu2QuPen(pen, max_err=1.0, reverse_direction=True)
+            src_glyphset[old].draw(cu2qu)
+            dst_glyf[new] = pen.glyph()
+            if abs(scale - 1.0) > 1e-6:
+                scale_glyph(dst_glyf[new], dst_glyf, scale, scale)
+        adv, lsb = src_hmtx[old]
+        dst_hmtx[new] = (round(adv * scale), round(lsb * scale))
+        order.append(new)
+
+    base.setGlyphOrder(order)
+    base["maxp"].numGlyphs = len(order)
+    source: dict[str, str] = {}
+    for table in base["cmap"].tables:
+        if table.format == 14 or not table.isUnicode():
+            continue
+        for cp in unicodes:
+            table.cmap[cp] = rename[src_cmap[cp]]
+            source[f"U+{cp:04X}"] = "source-han-sans"
+        table.data = None
+    print("overlay source han", len(unicodes))
+    return source
+
+
 def set_names(font: TTFont) -> None:
     name = font["name"]
     name.names = []
@@ -817,10 +1372,23 @@ def set_names(font: TTFont) -> None:
     font["post"].isFixedPitch = 1
 
 
+@cache
+def assigned_enclosed_set() -> frozenset[int]:
+    """规范 §2 例外表：U+2460–24FF 已分配码位。"""
+    return frozenset(
+        cp for cp in range(ENCLOSED_ALNUM[0], ENCLOSED_ALNUM[1] + 1) if _is_assigned(cp)
+    )
+
+
 def expected_advance(cp: int, upem: int) -> int:
-    """名称里的 em 按排版长度；其余走 UAX #11。Mn/Me 见 §6.2；Cf/Cc 按 POSIX wcwidth 不计列。"""
+    """名称里的 em 按排版长度；§2 例外表带圈字母数字按 1 em；其余走 UAX #11。
+
+    Mn/Me 见 UAX #11 §6.2；Cf/Cc 按 POSIX wcwidth 不计列。
+    """
     if cp in NAMED_EM_RATIO:
         return round(NAMED_EM_RATIO[cp] * upem)
+    if ENCLOSED_ALNUM[0] <= cp <= ENCLOSED_ALNUM[1] and _is_assigned(cp):
+        return upem  # §2 例外表：思源按 1 em 画的轮廓，不得再按 Ambiguous 压缩
     if cp >= 0x110000:
         return upem // 2
     cat = unicodedata.category(chr(cp))
@@ -933,13 +1501,20 @@ def ensure_multi_em_dashes(font: TTFont) -> None:
         print("added multi-em dashes", added)
 
 
-def load_emoji_cmaps(emoji_ttfs: list[Path] | None) -> list[tuple[str, dict]]:
-    out: list[tuple[str, dict]] = []
+def load_emoji_stats(emoji_ttfs: list[Path] | None) -> list[tuple[str, dict, int]]:
+    out: list[tuple[str, dict, int]] = []
     if not emoji_ttfs:
         return out
     for variant, path in zip(EMOJI_VARIANTS, emoji_ttfs):
-        if path.exists():
-            out.append((variant["family_zh"], TTFont(path).getBestCmap()))
+        if not path.exists():
+            continue
+        font = TTFont(path)
+        try:
+            out.append(
+                (variant["family_zh"], font.getBestCmap(), _count_ri_flag_ligatures(font))
+            )
+        finally:
+            font.close()
     return out
 
 
@@ -1019,11 +1594,12 @@ def write_coverage(
         "sources": {
             "jetbrainsMono": "2.304 NL Regular",
             "sarasaGothic": "Sarasa Fixed SC Regular 1.0.40 unhinted",
+            "sourceHanSans": "Source Han Sans SC Regular（带圈字母数字 §2 例外表）",
         },
     }
     DIST.mkdir(parents=True, exist_ok=True)
     product = product_coverage(cmap)
-    product["emoji"] = emoji_coverage(cmap, load_emoji_cmaps(emoji_ttfs))
+    product["emoji"] = emoji_coverage(cmap, load_emoji_stats(emoji_ttfs))
     summary["productCoverage"] = product
     (DIST / "coverage-summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -1063,7 +1639,7 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     tiny = TTFont(full_ttf)
     cmap = tiny.getBestCmap()
     product = product_coverage(cmap)
-    product["emoji"] = emoji_coverage(cmap, load_emoji_cmaps(emoji_ttfs))
+    product["emoji"] = emoji_coverage(cmap, load_emoji_stats(emoji_ttfs))
     payload = {
         "unicodeVersion": product["unicodeVersion"],
         "overview": product["overview"],
@@ -1122,6 +1698,8 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
 def main() -> None:
     if not SARASA.exists() or not JBM.exists():
         raise SystemExit(f"缺少上游字体：{SARASA} 或 {JBM}")
+    if not SOURCE_HAN.exists():
+        raise SystemExit(f"缺少思源黑体：{SOURCE_HAN}；请先运行 python scripts/fetch-vendor.py")
     DIST.mkdir(parents=True, exist_ok=True)
     print("load sarasa")
     base = TTFont(SARASA, recalcBBoxes=True, recalcTimestamp=False)
@@ -1129,6 +1707,10 @@ def main() -> None:
     jbm = TTFont(JBM, recalcBBoxes=True, recalcTimestamp=False)
     print("overlay")
     sources = overlay_jbm(base, jbm)
+    print("load source han")
+    shs = TTFont(SOURCE_HAN, recalcTimestamp=False)
+    sources.update(overlay_source_han(base, shs))
+    shs.close()
     for tag in ("vmtx", "vhea", "VORG"):
         if tag in base:
             del base[tag]
@@ -1141,11 +1723,14 @@ def main() -> None:
     out = DIST / "XiaoheiziMono-Regular.ttf"
     print("save", out)
     base.save(out)
-    emoji_outs = [DIST / v["out_name"] for v in EMOJI_VARIANTS]
-    if emoji_needs_rebuild(emoji_outs):
-        emoji_outs = build_all_emoji()
-    else:
-        print("reuse emoji", [p.name for p in emoji_outs])
+    emoji_outs: list[Path] = []
+    for variant in EMOJI_VARIANTS:
+        out = DIST / variant["out_name"]
+        if emoji_variant_needs_rebuild(variant, out):
+            emoji_outs.append(build_emoji_variant(variant))
+        else:
+            print("reuse emoji", out.name)
+            emoji_outs.append(out)
     print("coverage")
     built = TTFont(out)
     violations = write_coverage(built, sources, emoji_outs)
@@ -1163,6 +1748,16 @@ def main() -> None:
     a = built.getBestCmap()
     h = built["hmtx"]
     print("A", h[a[ord("A")]][0], "zhong", h[a[0x4E2D]][0], "box", h[a[0x2500]][0])
+    # §2 例外表抽查：① 推进 1 em 且轮廓来自思源（宽 ≥ 0.8 em，不是半格稿的 436）。
+    # 注意：post 3.0 不存字形名，重读后名字会按 cmap 重建，不能用名字前缀判断。
+    from fontTools.pens.boundsPen import BoundsPen
+
+    pen = BoundsPen(built.getGlyphSet())
+    built.getGlyphSet()[a[0x2460]].draw(pen)
+    circled_w = pen.bounds[2] - pen.bounds[0] if pen.bounds else 0
+    print("circled1", h[a[0x2460]][0], f"width={circled_w:.0f}", "warn", h[a[0x26A0]][0])
+    if h[a[0x2460]][0] != TARGET_UPEM or circled_w < TARGET_UPEM * 0.8:
+        raise SystemExit("U+2460 例外表未生效：推进或轮廓宽度不合格")
     print("circled21", h[a[0x3251]][0], "hw-kiyeok", h[a[0xFFA1]][0], "corp", h[a[0x337F]][0])
     print("emdash", h[a[0x2014]][0], "emspace", h[a[0x2003]][0], "twoem", h[a[0x2E3A]][0], "threeem", h[a[0x2E3B]][0])
     print("check-ep", 0x2705 in a, "voltage-ep", 0x26A1 in a, "warn-keep", 0x26A0 in a)
