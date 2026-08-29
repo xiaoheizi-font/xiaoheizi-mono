@@ -49,6 +49,7 @@ jobs:
           mkdir -p _site
           cp dist/preview.html _site/index.html
           cp dist/preview.html _site/preview.html
+          cp dist/preview.woff2 dist/preview-emoji.woff2 dist/preview-emoji-3d.woff2 _site/
           cp dist/preview.ttf dist/preview-emoji.ttf dist/preview-emoji-3d.ttf _site/
           cp dist/coverage.js dist/coverage-blocks.md _site/
 
@@ -61,6 +62,7 @@ jobs:
           name: fonts
           path: |
             dist/Xiaoheizi*.ttf
+            dist/Xiaoheizi*.woff2
             dist/*.txt
             dist/coverage-*.json
             dist/coverage-*.md
@@ -114,7 +116,7 @@ jobs:
           git tag -a "$TAG" "$GITHUB_SHA" -m "小黑字等宽 ${TAG}"
           git push origin "refs/tags/${TAG}"
           shopt -s nullglob
-          files=(dist/Xiaoheizi*.ttf dist/*.txt dist/coverage-*.json dist/coverage-*.md)
+          files=(dist/Xiaoheizi*.ttf dist/Xiaoheizi*.woff2 dist/*.txt dist/coverage-*.json dist/coverage-*.md)
           NOTES="由 main 提交 \`${GITHUB_SHA:0:7}\` 自动构建。"$'\n\n'"- 小黑字等宽 \`Xiaoheizi Mono\`"$'\n'"- 小黑字表情 \`Xiaoheizi Emoji\`（上游 Noto，族名不写厂商）"$'\n'"- 小黑字表情立体 \`Xiaoheizi Emoji 3D\`（上游 Fluent，族名不写厂商）"$'\n\n'"覆盖表见附件 \`coverage-blocks.md\`。预览页见 GitHub Pages。"
           gh release create "$TAG" \
             --target "$GITHUB_SHA" \

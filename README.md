@@ -35,15 +35,15 @@ python scripts/fetch-vendor.py
 python scripts/build.py
 ```
 
-用浏览器打开 `dist/preview.html`（请刷新）。页面模板在 `preview/preview.html`，覆盖率与字符图鉴由同目录的 `coverage.js` 填入。Markdown 覆盖表在 `dist/coverage-blocks.md`。
+用浏览器打开 `dist/preview.html`（请刷新）。页面模板在 `preview/preview.html`，覆盖率与字符图鉴由同目录的 `coverage.js` 填入。Markdown 覆盖表在 `dist/coverage-blocks.md`。网页嵌入请用 `dist/Xiaoheizi*-Regular.woff2`（TTF 仍可用于安装）。
 
 ## GitHub 自动发布
 
 推送到 `main` 后，[`.github/workflows/publish.yml`](.github/workflows/publish.yml) 会：
 
 1. 拉取 `vendor/` 上游并构建字体。
-2. 把预览子集发到 GitHub Pages（不含完整 TTF）。
-3. 在该提交上打 tag `v0.1.0-preview.<序号>`，并创建 GitHub Release（完整 TTF + 许可证 + 覆盖表）。
+2. 把预览子集发到 GitHub Pages（不含完整产品字体）。
+3. 在该提交上打 tag `v0.1.0-preview.<序号>`，并创建 GitHub Release（完整 TTF + WOFF2 + 许可证 + 覆盖表）。
 
 首次使用前，在远程仓打开 **Settings → Pages → Source → GitHub Actions**。提交说明含 `[skip release]` 时不打 tag。也可在 Actions 里手动跑「发布」。预览地址形如 `https://xiaoheizi-font.github.io/xiaoheizi-mono/`。
 

@@ -1924,6 +1924,24 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
             etiny.save(DIST / variant["preview_name"])
 
 
+def write_woff2(ttf_path: Path) -> Path:
+    """把已保存的 TTF 封装成同名 WOFF2。不改轮廓与推进。"""
+    if not ttf_path.exists():
+        raise SystemExit(f"写出 WOFF2 缺少源文件：{ttf_path}")
+    try:
+        import brotli  # noqa: F401
+    except ImportError as e:
+        raise SystemExit("写出 WOFF2 需要 brotli：pip install brotli") from e
+    out = ttf_path.with_suffix(".woff2")
+    font = TTFont(ttf_path, recalcTimestamp=False)
+    font.flavor = "woff2"
+    print("woff2", out.name)
+    font.save(out)
+    font.close()
+    print("  bytes", out.stat().st_size)
+    return out
+
+
 def main() -> None:
     if not SARASA.exists() or not JBM.exists():
         raise SystemExit(f"缺少上游字体：{SARASA} 或 {JBM}")
