@@ -14,7 +14,18 @@
 | 小黑字表情立体 | 彩色 emoji，立体画风（上游 Fluent；族名不写厂商） |
 | `Xiaoheizi Emoji 3D` | 立体配套的 CSS 族名 |
 
-衍生字体不使用上游保留名或商标：`Source`、`JetBrains`、`Sarasa`、`更纱`、`Iosevka`、`Noto`、`Fluent`、`Microsoft`、`微软`、`MS`、`Google`、`谷歌`。
+## 许可与捐赠
+
+本仓库以 MIT 发布，全文在 `LICENSE`。
+
+**本人强烈谴责恶劣的A股市场环境**：作者因买入股【华铁股份】现【R通达1】不完全统计**家庭总计亏损高达200万人民币以上**。目前正在起诉，进入二审阶段，执行更是不知要到什么时候了，能执行回来多少钱更不知道，这已经是第三、四年了，其余股票也亏损严重，现金流状况至今难以缓解。
+
+故在此赛博要饭接受捐赠，谢谢。
+
+| 微信赞赏码 | 支付宝领红包 | 支付宝 |
+| --- | --- | --- |
+| ![微信赞赏码](https://cdn.jsdelivr.net/gh/gaoyia/gaoyia@v0.0.2/donate.jpg) | ![支付宝领红包](https://cdn.jsdelivr.net/gh/gaoyia/gaoyia@v0.0.2/zfbhb.jpg) | ![支付宝](https://cdn.jsdelivr.net/gh/gaoyia/gaoyia@v0.0.2/zfb.jpg) |
+
 
 ## 文档
 
@@ -36,14 +47,3 @@ python scripts/build.py
 ```
 
 用浏览器打开 `dist/preview.html`（请刷新）。页面模板在 `preview/preview.html`，覆盖率与字符图鉴由同目录的 `coverage.js` 填入。Markdown 覆盖表在 `dist/coverage-blocks.md`。网页嵌入请用 `dist/XiaoheiziMono-Regular.woff2`（400）或 `dist/XiaoheiziMono-Light.woff2`（300，笔画更细，格子宽与 Regular 相同），外加两套表情 WOFF2。TTF 仍可用于安装。
-
-## GitHub 自动发布
-
-推送到 `main` 后，[`.github/workflows/publish.yml`](.github/workflows/publish.yml) 会：
-
-1. 拉取 `vendor/` 上游并构建字体。
-2. 把预览页发到 GitHub Pages（产品 WOFF2，不含 TTF）。
-3. 在该提交上打 tag `v0.1.0-preview.<序号>`，并创建 GitHub Release（完整 TTF + WOFF2 + 许可证 + 覆盖表）。
-
-首次使用前，在远程仓打开 **Settings → Pages → Source → GitHub Actions**。提交说明含 `[skip release]` 时不打 tag。也可在 Actions 里手动跑「发布」。预览地址形如 `https://xiaoheizi-font.github.io/xiaoheizi-mono/`。
-
