@@ -67,8 +67,6 @@ EMOJI_VARIANTS = (
         "ps": "XiaoheiziEmoji-Regular",
         "full_en": "Xiaoheizi Emoji Regular",
         "out_name": "XiaoheiziEmoji-Regular.ttf",
-        "copyright": "Copyright 2026 小黑字. Portions: Google LLC / Noto Emoji authors. SIL OFL 1.1.",
-        "license_notice": "This Font Software is licensed under the SIL Open Font License, Version 1.1. https://openfontlicense.org",
     },
     {
         "src": FLUENT_EMOJI,
@@ -78,8 +76,6 @@ EMOJI_VARIANTS = (
         "full_en": "Xiaoheizi Emoji 3D Regular",
         "out_name": "XiaoheiziEmoji3D-Regular.ttf",
         "flags_from_noto": True,
-        "copyright": "Copyright 2026 小黑字. Artwork: Microsoft Fluent Emoji (MIT); flag glyphs from Noto Emoji (Google LLC, SIL OFL 1.1). Font compilation portions: tetunori/fluent-emoji-webfont (MIT).",
-        "license_notice": "Font names under SIL OFL 1.1. Fluent Emoji artwork under MIT. Flag portions from Noto Emoji under SIL OFL 1.1. See license files in dist/.",
     },
 )
 
@@ -892,20 +888,49 @@ def fit_emoji_to_em(font: TTFont) -> float:
     return scale
 
 
+def ofl_copyright_notice() -> str:
+    """OFL.txt 里许可证正文之前的版权声明。字体 name ID 0 用同一段。"""
+    text = (ROOT / "OFL.txt").read_text(encoding="utf-8")
+    marker = "This Font Software is licensed under the SIL Open Font License, Version 1.1."
+    idx = text.find(marker)
+    if idx < 0 or "SIL OPEN FONT LICENSE Version 1.1" not in text:
+        raise SystemExit("OFL.txt 必须包含版权声明和 SIL OFL 1.1 正文")
+    return " ".join(text[:idx].split())
+
+
+OFL_LICENSE_NOTICE = (
+    "This Font Software is licensed under the SIL Open Font License, Version 1.1. "
+    "The full license and copyright notices are in OFL.txt distributed with this font. "
+    "https://openfontlicense.org"
+)
+OFL_LICENSE_NOTICE_3D = (
+    OFL_LICENSE_NOTICE
+    + " MIT permission notices for included Fluent Emoji artwork and its TTF compilation "
+    "are in FluentEmoji-MIT-Microsoft.txt and FluentEmoji-MIT-tetunori.txt. "
+    "This font is distributed only under the SIL Open Font License."
+)
+
+
+def license_notice_for(variant: dict | None) -> str:
+    if variant and variant.get("flags_from_noto"):
+        return OFL_LICENSE_NOTICE_3D
+    return OFL_LICENSE_NOTICE
+
+
 def set_emoji_names(font: TTFont, variant: dict) -> None:
     name = font["name"]
     name.names = []
     family_en = variant["family_en"]
     family_zh = variant["family_zh"]
     records = [
-        (0, variant["copyright"]),
+        (0, ofl_copyright_notice()),
         (1, family_en),
         (2, "Regular"),
         (3, f"{family_en}:Regular"),
         (4, variant["full_en"]),
         (5, "Version 0.1.0-preview"),
         (6, variant["ps"]),
-        (13, variant["license_notice"]),
+        (13, license_notice_for(variant)),
         (14, "https://openfontlicense.org"),
         (16, family_en),
         (17, "Regular"),
@@ -1417,6 +1442,12 @@ def emoji_variant_needs_rebuild(variant: dict, path: Path) -> bool:
         return True
     font = TTFont(path)
     try:
+        notice = font["name"].getName(0, 3, 1, 0x409)
+        lic = font["name"].getName(13, 3, 1, 0x409)
+        if notice is None or notice.toUnicode() != ofl_copyright_notice():
+            return True
+        if lic is None or lic.toUnicode() != license_notice_for(variant):
+            return True
         upem = font["head"].unitsPerEm
         cmap = font.getBestCmap()
         if upem != TARGET_UPEM:
@@ -1561,14 +1592,14 @@ def set_names(font: TTFont, cut: dict) -> None:
     name = font["name"]
     name.names = []
     records = [
-        (0, "Copyright 2026 小黑字. Portions: JetBrains Mono Project Authors; Sarasa Gothic / Source Han Sans / Iosevka authors. SIL OFL 1.1."),
+        (0, ofl_copyright_notice()),
         (1, FAMILY_EN),
         (2, style),
         (3, f"Xiaoheizi Mono:{style}"),
         (4, cut["full_en"]),
         (5, "Version 0.1.0-preview"),
         (6, cut["ps"]),
-        (13, "This Font Software is licensed under the SIL Open Font License, Version 1.1. https://openfontlicense.org"),
+        (13, OFL_LICENSE_NOTICE),
         (14, "https://openfontlicense.org"),
         (16, FAMILY_EN),
         (17, style),
@@ -2066,6 +2097,12 @@ def assert_mono_cut(font: TTFont, cut: dict) -> None:
         raise SystemExit(f"{label} 子族名须为 {label}")
     if ps is None or ps.toUnicode() != cut["ps"]:
         raise SystemExit(f"{label} PostScript 名须为 {cut['ps']}")
+    copyright_name = name.getName(0, 3, 1, 0x409)
+    license_name = name.getName(13, 3, 1, 0x409)
+    if copyright_name is None or copyright_name.toUnicode() != ofl_copyright_notice():
+        raise SystemExit(f"{label} 版权声明须与 OFL.txt 一致")
+    if license_name is None or license_name.toUnicode() != OFL_LICENSE_NOTICE:
+        raise SystemExit(f"{label} 许可证字段须指向 OFL.txt")
     regular_bit = 1 << 6
     has_regular = bool(int(font["OS/2"].fsSelection) & regular_bit)
     if label == "Regular" and not has_regular:
@@ -2166,6 +2203,19 @@ def main() -> None:
         else:
             print("reuse emoji", emoji_out.name)
             emoji_outs.append(emoji_out)
+    for variant, emoji_out in zip(EMOJI_VARIANTS, emoji_outs):
+        font = TTFont(emoji_out)
+        try:
+            notice = font["name"].getName(0, 3, 1, 0x409)
+            lic = font["name"].getName(13, 3, 1, 0x409)
+            if notice is None or notice.toUnicode() != ofl_copyright_notice():
+                raise SystemExit(f"{variant['family_en']} 版权声明须与 OFL.txt 一致")
+            if lic is None or lic.toUnicode() != license_notice_for(variant):
+                raise SystemExit(f"{variant['family_en']} 许可证字段须指向 OFL.txt")
+            if variant.get("flags_from_noto") and "only under the SIL Open Font License" not in lic.toUnicode():
+                raise SystemExit("立体套须写明只按 OFL 分发")
+        finally:
+            font.close()
 
     reports: list[dict] = []
     for cut, path, _sources, overlay in built:

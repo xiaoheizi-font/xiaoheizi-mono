@@ -2,7 +2,7 @@
 
 独立开源字体项目。本仓库当前产品是 **小黑字等宽**（英文字族 `Xiaoheizi Mono`）。
 
-西文取 [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)，汉字与地区字形取 [更纱黑体](https://github.com/be5invis/Sarasa-Gothic) / 思源黑体一系，带圈字母数字（`U+2460–24FF`）直接取 [思源黑体 SC Regular](https://github.com/adobe-fonts/source-han-sans)（规范 §2 例外表，按 1 em 覆盖半格稿）。彩色 emoji 另出两套配套字体，均收到与汉字同宽：一套取 [Noto Emoji](https://github.com/googlefonts/noto-emoji) COLRv1，一套取微软 [Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) Color 画风（Fluent 缺的国旗用 Noto 补入）。制作脚本开源。等宽本体与 Noto 衍生为 SIL OFL 1.1；Fluent 画作为 MIT。
+西文取 [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)，汉字与地区字形取 [更纱黑体](https://github.com/be5invis/Sarasa-Gothic) / 思源黑体一系，带圈字母数字（`U+2460–24FF`）直接取 [思源黑体 SC Regular](https://github.com/adobe-fonts/source-han-sans)（规范 §2 例外表，按 1 em 覆盖半格稿）。彩色 emoji 另出两套配套字体，均收到与汉字同宽：一套取 [Noto Emoji](https://github.com/googlefonts/noto-emoji) COLRv1，一套取微软 [Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) Color 画风（Fluent 缺的国旗用 Noto 补入）。制作脚本与字体都按 [SIL OFL 1.1](./OFL.txt) 发布。立体套里的 Fluent 画作仍附 MIT 声明，字体本身不以 MIT 分发。
 
 | 名称 | 用途 |
 |------|------|
