@@ -15,8 +15,9 @@ SARASA_7Z = (
     "https://github.com/be5invis/Sarasa-Gothic/releases/download/v1.0.40/"
     "SarasaFixedSC-TTF-Unhinted-1.0.40.7z"
 )
-NOTO_COLR = "https://github.com/googlefonts/noto-emoji/raw/main/fonts/Noto-COLRv1.ttf"
-NOTO_OFL = "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/fonts/LICENSE"
+# 2026-09 起上游把 COLRv1 挪到 2D/fonts/，旧的 fonts/ 路径会 404。
+NOTO_COLR = "https://github.com/googlefonts/noto-emoji/raw/main/2D/fonts/Noto-COLRv1.ttf"
+NOTO_OFL = "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/2D/fonts/LICENSE"
 FLUENT_TTF = (
     "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiColor.ttf"
 )
