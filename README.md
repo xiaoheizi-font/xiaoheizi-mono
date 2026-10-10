@@ -35,7 +35,7 @@ python scripts/fetch-vendor.py
 python scripts/build.py
 ```
 
-用浏览器打开 `dist/preview.html`（请刷新）。页面模板在 `preview/preview.html`，覆盖率与字符图鉴由同目录的 `coverage.js` 填入。Markdown 覆盖表在 `dist/coverage-blocks.md`。网页嵌入请用 `dist/Xiaoheizi*-Regular.woff2`（TTF 仍可用于安装）。
+用浏览器打开 `dist/preview.html`（请刷新）。页面模板在 `preview/preview.html`，覆盖率与字符图鉴由同目录的 `coverage.js` 填入。Markdown 覆盖表在 `dist/coverage-blocks.md`。网页嵌入请用 `dist/XiaoheiziMono-Regular.woff2`（400）或 `dist/XiaoheiziMono-Light.woff2`（300，笔画更细，格子宽与 Regular 相同），外加两套表情 WOFF2。TTF 仍可用于安装。
 
 ## GitHub 自动发布
 

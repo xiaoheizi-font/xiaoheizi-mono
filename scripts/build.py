@@ -20,10 +20,37 @@ DIST = ROOT / "dist"
 PREVIEW_HTML = ROOT / "preview" / "preview.html"
 BLOCK_ZH_PATH = Path(__file__).resolve().parent / "unicode-block-zh.json"
 
-SARASA = VENDOR / "sarasa-fixed-sc" / "SarasaFixedSC-Regular.ttf"
-JBM = VENDOR / "jetbrains-mono" / "fonts" / "ttf" / "JetBrainsMonoNL-Regular.ttf"
 JBM_OFL = VENDOR / "jetbrains-mono" / "OFL.txt"
-SOURCE_HAN = VENDOR / "source-han-sans" / "SourceHanSansSC-Regular.otf"
+
+# 规范 §3 字重：Regular 400 与 Light 300。斜体与 Term 不做。表情不拆字重。
+MONO_CUTS = (
+    {
+        "style": "Regular",
+        "weight": 400,
+        "sarasa": VENDOR / "sarasa-fixed-sc" / "SarasaFixedSC-Regular.ttf",
+        "jbm": VENDOR / "jetbrains-mono" / "fonts" / "ttf" / "JetBrainsMonoNL-Regular.ttf",
+        "source_han": VENDOR / "source-han-sans" / "SourceHanSansSC-Regular.otf",
+        "ps": "XiaoheiziMono-Regular",
+        "full_en": "Xiaoheizi Mono Regular",
+        "out_name": "XiaoheiziMono-Regular.ttf",
+        "jbm_label": "2.304 NL Regular",
+        "sarasa_label": "Sarasa Fixed SC Regular 1.0.40 unhinted",
+        "shs_label": "Source Han Sans SC Regular（带圈字母数字与符号四块，§2）",
+    },
+    {
+        "style": "Light",
+        "weight": 300,
+        "sarasa": VENDOR / "sarasa-fixed-sc" / "SarasaFixedSC-Light.ttf",
+        "jbm": VENDOR / "jetbrains-mono" / "fonts" / "ttf" / "JetBrainsMonoNL-Light.ttf",
+        "source_han": VENDOR / "source-han-sans" / "SourceHanSansSC-Light.otf",
+        "ps": "XiaoheiziMono-Light",
+        "full_en": "Xiaoheizi Mono Light",
+        "out_name": "XiaoheiziMono-Light.ttf",
+        "jbm_label": "2.304 NL Light",
+        "sarasa_label": "Sarasa Fixed SC Light 1.0.40 unhinted",
+        "shs_label": "Source Han Sans SC Light（带圈字母数字与符号四块，§2）",
+    },
+)
 
 # 规范 §6：配套表情字体，不并入 Regular；Regular 保留 EP 黑白半宽，由栈覆盖
 NOTO_EMOJI = VENDOR / "noto-emoji" / "Noto-COLRv1.ttf"
@@ -149,9 +176,7 @@ PREFIX = "jbm."
 BMP_DENOM = 65535  # 规范 §4.2：BMP 习惯分母（U+0000–U+FFFF）
 FAMILY_EN = "Xiaoheizi Mono"
 FAMILY_ZH = "小黑字等宽"
-FULL_EN = "Xiaoheizi Mono Regular"
-PS_NAME = "XiaoheiziMono-Regular"
-TARGET_UPEM = 1000  # Regular 与配套表情同一 em；1 em = 2 格
+TARGET_UPEM = 1000  # 等宽与配套表情同一 em；1 em = 2 格
 
 # 表情序列用到的零宽/组合码位，本身不是「一幅图」，但 cmap 里要留着才能拼 ZWJ / 键帽。
 EMOJI_SEQUENCE_CPS = frozenset({0x200D, 0xFE0E, 0xFE0F, 0x20E3})
@@ -284,6 +309,7 @@ def unicode_block_coverage(
     hmtx=None,
     sources: dict[str, str] | None = None,
     upem: int | None = None,
+    overlay: frozenset[int] | None = None,
 ) -> list[dict]:
     """规范 §4.3：每个官方区块一行。本版本已分配为 0 的块不出现。"""
     rows: list[dict] = []
@@ -302,7 +328,9 @@ def unicode_block_coverage(
             if hmtx is None or upem is None:
                 continue
             adv = hmtx[cmap[cp]][0]
-            cell = expected_cells(cp, adv, upem)
+            if overlay is None:
+                raise SystemExit("覆盖表统计格子宽时必须带上该字重的思源覆盖集")
+            cell = expected_cells(cp, adv, upem, overlay)
             if cell is None:
                 cells.add("?")
             elif cell < 0:
@@ -445,6 +473,7 @@ def product_coverage(
     hmtx=None,
     sources: dict[str, str] | None = None,
     upem: int | None = None,
+    overlay: frozenset[int] | None = None,
 ) -> dict:
     """规范 §4.2 产品向分集表 + §4.3 官方区块全表。"""
     bmp_mapped = sum(1 for cp in cmap if cp <= 0xFFFF)
@@ -531,7 +560,9 @@ def product_coverage(
         ],
         "cjk": [pack_coverage_row(cmap, n, note, u) for n, note, u in cjk],
         "unicode": [pack_coverage_row(cmap, n, note, u) for n, note, u in unicode_rows],
-        "blocks": unicode_block_coverage(cmap, hmtx=hmtx, sources=sources, upem=upem),
+        "blocks": unicode_block_coverage(
+            cmap, hmtx=hmtx, sources=sources, upem=upem, overlay=overlay
+        ),
     }
 
 
@@ -1525,28 +1556,40 @@ def overlay_source_han(base: TTFont, shs: TTFont) -> dict[str, str]:
     return source
 
 
-def set_names(font: TTFont) -> None:
+def set_names(font: TTFont, cut: dict) -> None:
+    style = cut["style"]
     name = font["name"]
     name.names = []
     records = [
         (0, "Copyright 2026 小黑字. Portions: JetBrains Mono Project Authors; Sarasa Gothic / Source Han Sans / Iosevka authors. SIL OFL 1.1."),
         (1, FAMILY_EN),
-        (2, "Regular"),
-        (3, "Xiaoheizi Mono:Regular"),
-        (4, FULL_EN),
+        (2, style),
+        (3, f"Xiaoheizi Mono:{style}"),
+        (4, cut["full_en"]),
         (5, "Version 0.1.0-preview"),
-        (6, PS_NAME),
+        (6, cut["ps"]),
         (13, "This Font Software is licensed under the SIL Open Font License, Version 1.1. https://openfontlicense.org"),
         (14, "https://openfontlicense.org"),
         (16, FAMILY_EN),
-        (17, "Regular"),
+        (17, style),
     ]
     for nid, value in records:
         name.setName(value, nid, 3, 1, 0x409)
     name.setName(FAMILY_ZH, 1, 3, 1, 0x804)
-    name.setName(FAMILY_ZH + " Regular", 4, 3, 1, 0x804)
+    name.setName(FAMILY_ZH + " " + style, 4, 3, 1, 0x804)
     name.setName(FAMILY_ZH, 16, 3, 1, 0x804)
     font["post"].isFixedPitch = 1
+    os2 = font["OS/2"]
+    os2.usWeightClass = cut["weight"]
+    italic, bold, regular, oblique = 1 << 0, 1 << 5, 1 << 6, 1 << 9
+    sel = int(os2.fsSelection)
+    sel &= ~(italic | bold | oblique)
+    if style == "Regular":
+        sel |= regular
+    else:
+        sel &= ~regular
+    os2.fsSelection = sel
+    font["head"].macStyle &= ~0x3
 
 
 @cache
@@ -1558,9 +1601,9 @@ def assigned_enclosed_set() -> frozenset[int]:
 
 
 @cache
-def source_han_overlay_set() -> frozenset[int]:
-    """思源实际有、且落在 §2 覆盖区的码位。"""
-    font = TTFont(SOURCE_HAN)
+def source_han_overlay_set(path: str) -> frozenset[int]:
+    """该字重思源实际有、且落在 §2 覆盖区的码位。"""
+    font = TTFont(path)
     try:
         cmap = font.getBestCmap() or {}
     finally:
@@ -1573,20 +1616,20 @@ def source_han_overlay_set() -> frozenset[int]:
     return frozenset(out)
 
 
-def is_fullwidth_exception(cp: int) -> bool:
-    """规范 §2 例外表：1 em。"""
+def is_fullwidth_exception(cp: int, overlay: frozenset[int]) -> bool:
+    """规范 §2 例外表：1 em。符号四块只认该字重思源里有的码位。"""
     if ENCLOSED_ALNUM[0] <= cp <= ENCLOSED_ALNUM[1] and _is_assigned(cp):
         return True
     if any(lo <= cp <= hi for lo, hi in STRETCH_TO_EM_RANGES):
         return True
     if cp in STRETCH_TO_EM_CPS:
         return True
-    if cp in source_han_overlay_set():
+    if cp in overlay:
         return True
     return False
 
 
-def expected_advance(cp: int, upem: int) -> int:
+def expected_advance(cp: int, upem: int, overlay: frozenset[int]) -> int:
     """名称里的 em 按排版长度；§2 例外表 1 em；
     未列入例外的 Emoji_Presentation 按半宽；其余走 UAX #11。
 
@@ -1595,7 +1638,7 @@ def expected_advance(cp: int, upem: int) -> int:
     """
     if cp in NAMED_EM_RATIO:
         return round(NAMED_EM_RATIO[cp] * upem)
-    if is_fullwidth_exception(cp):
+    if is_fullwidth_exception(cp, overlay):
         return upem
     if is_emoji_presentation(cp):
         return upem // 2
@@ -1610,9 +1653,9 @@ def expected_advance(cp: int, upem: int) -> int:
     return upem // 2
 
 
-def expected_cells(cp: int, advance: int, upem: int) -> int | None:
+def expected_cells(cp: int, advance: int, upem: int, overlay: frozenset[int]) -> int | None:
     """对照应得推进；合则返回格子（可大于 2），不合则 None。分数 em 返回 None 以外的 0 并在覆盖表用 ~。"""
-    exp = expected_advance(cp, upem)
+    exp = expected_advance(cp, upem, overlay)
     if abs(advance - exp) > 1:
         return None
     if exp == 0:
@@ -1624,7 +1667,7 @@ def expected_cells(cp: int, advance: int, upem: int) -> int | None:
     return -1  # 不足 1 格的分数 em，覆盖表记为 ~
 
 
-def apply_uax11_metrics(font: TTFont) -> int:
+def apply_uax11_metrics(font: TTFont, overlay: frozenset[int]) -> int:
     """按应得宽度改 hmtx；有轮廓的字横向拉伸到新推进，空格只改推进。"""
     cmap_tables = [
         t for t in font["cmap"].tables if t.isUnicode() and t.format != 14
@@ -1639,7 +1682,7 @@ def apply_uax11_metrics(font: TTFont) -> int:
             if cp in seen:
                 continue
             seen.add(cp)
-            exp = expected_advance(cp, upem)
+            exp = expected_advance(cp, upem, overlay)
             by_glyph.setdefault(gname, {}).setdefault(exp, []).append(cp)
 
     changed = 0
@@ -1777,7 +1820,7 @@ def compose_square_paatu(font: TTFont, sources: dict[str, str]) -> None:
             table.cmap[cp] = name
             table.data = None
     sources[f"U+{cp:04X}"] = "composed-square"
-    print("composed square paatu U+332C from ㌪/㌫")
+    print("composed square paatu U+332C from U+332A/U+332B")
 
 
 def load_emoji_stats(emoji_ttfs: list[Path] | None) -> list[tuple[str, dict, int]]:
@@ -1797,23 +1840,34 @@ def load_emoji_stats(emoji_ttfs: list[Path] | None) -> list[tuple[str, dict, int
     return out
 
 
-def write_coverage(
-    font: TTFont,
-    sources: dict[str, str],
-    emoji_ttfs: list[Path] | None = None,
-) -> list[dict]:
+def collect_width_violations(font: TTFont, overlay: frozenset[int]) -> list[dict]:
     cmap = font.getBestCmap()
     hmtx = font["hmtx"]
     upem = font["head"].unitsPerEm
     violations: list[dict] = []
     for cp, gname in cmap.items():
         adv = hmtx[gname][0]
-        if expected_cells(cp, adv, upem) is None:
+        if expected_cells(cp, adv, upem, overlay) is None:
             violations.append({
                 "cp": f"U+{cp:04X}",
                 "advance": adv,
-                "expected": expected_advance(cp, upem),
+                "expected": expected_advance(cp, upem, overlay),
             })
+    return violations
+
+
+def write_coverage(
+    font: TTFont,
+    sources: dict[str, str],
+    cut: dict,
+    overlay: frozenset[int],
+    weight_reports: list[dict],
+    emoji_ttfs: list[Path] | None = None,
+) -> list[dict]:
+    violations = collect_width_violations(font, overlay)
+    cmap = font.getBestCmap()
+    hmtx = font["hmtx"]
+    upem = font["head"].unitsPerEm
 
     mapped = len(cmap)
     assigned = 0
@@ -1823,20 +1877,23 @@ def write_coverage(
 
     summary = {
         "unicodeVersion": unicodedata.unidata_version,
-        "fontPostScriptName": PS_NAME,
+        "fontPostScriptName": cut["ps"],
         "mapped": mapped,
         "assignedInVersion": assigned,
         "mappedPercentOfAssigned": round(100.0 * mapped / assigned, 4) if assigned else 0,
         "widthViolations": violations[:200],
         "widthViolationCount": len(violations),
         "sources": {
-            "jetbrainsMono": "2.304 NL Regular",
-            "sarasaGothic": "Sarasa Fixed SC Regular 1.0.40 unhinted",
-            "sourceHanSans": "Source Han Sans SC Regular（带圈字母数字 §2 例外表）",
+            "jetbrainsMono": cut["jbm_label"],
+            "sarasaGothic": cut["sarasa_label"],
+            "sourceHanSans": cut["shs_label"],
         },
+        "weights": weight_reports,
     }
     DIST.mkdir(parents=True, exist_ok=True)
-    product = product_coverage(cmap, hmtx=hmtx, sources=sources, upem=upem)
+    product = product_coverage(
+        cmap, hmtx=hmtx, sources=sources, upem=upem, overlay=overlay
+    )
     product["emoji"] = emoji_coverage(cmap, load_emoji_stats(emoji_ttfs))
     have = {row["name"] for row in product["blocks"]}
     missing_req = [name for name, _lo, _hi in REQUIRED_BLOCKS if name not in have]
@@ -1851,7 +1908,8 @@ def write_coverage(
         "",
         f"- Unicode {summary['unicodeVersion']}（Python unicodedata）",
         f"- 全平面已映射 {mapped} / 已分配 {assigned} = {summary['mappedPercentOfAssigned']}%",
-        f"- 宽度违规 {len(violations)}（发布时必须为 0）",
+        f"- 宽度违规 {len(violations)}（发布时必须为 0；本表按 {cut['style']} 统计）",
+        "- 字重：Regular 400 为统计主体；Light 300 同规则另档，违规数须为 0，已映射数须与 Regular 相同",
         "",
         *coverage_markdown_tables(product),
     ]
@@ -1957,82 +2015,92 @@ def write_woff2(ttf_path: Path) -> Path:
     return out
 
 
-def main() -> None:
-    if not SARASA.exists() or not JBM.exists():
-        raise SystemExit(f"缺少上游字体：{SARASA} 或 {JBM}")
-    if not SOURCE_HAN.exists():
-        raise SystemExit(f"缺少思源黑体：{SOURCE_HAN}；请先运行 python scripts/fetch-vendor.py")
-    DIST.mkdir(parents=True, exist_ok=True)
-    print("load sarasa")
-    base = TTFont(SARASA, recalcBBoxes=True, recalcTimestamp=False)
-    print("load jetbrains")
-    jbm = TTFont(JBM, recalcBBoxes=True, recalcTimestamp=False)
-    print("overlay")
+def build_mono_cut(cut: dict) -> tuple[Path, dict[str, str], frozenset[int]]:
+    for label, path in (
+        ("更纱", cut["sarasa"]),
+        ("JetBrains Mono", cut["jbm"]),
+        ("思源", cut["source_han"]),
+    ):
+        if not Path(path).exists():
+            raise SystemExit(f"缺少{label}：{path}；请先运行 python scripts/fetch-vendor.py")
+    print("load sarasa", cut["style"])
+    base = TTFont(cut["sarasa"], recalcBBoxes=True, recalcTimestamp=False)
+    print("load jetbrains", cut["style"])
+    jbm = TTFont(cut["jbm"], recalcBBoxes=True, recalcTimestamp=False)
+    print("overlay", cut["style"])
     sources = overlay_jbm(base, jbm)
-    print("load source han")
-    shs = TTFont(SOURCE_HAN, recalcTimestamp=False)
+    jbm.close()
+    print("load source han", cut["style"])
+    shs = TTFont(cut["source_han"], recalcTimestamp=False)
     sources.update(overlay_source_han(base, shs))
     shs.close()
+    overlay = source_han_overlay_set(str(cut["source_han"]))
     for tag in ("vmtx", "vhea", "VORG"):
         if tag in base:
             del base[tag]
     strip_ligatures(base)
-    apply_uax11_metrics(base)
+    apply_uax11_metrics(base, overlay)
     ensure_multi_em_dashes(base)
     compose_square_paatu(base, sources)
-    set_names(base)
+    set_names(base, cut)
     sanitize_for_ots(base)
-    regular_out = DIST / "XiaoheiziMono-Regular.ttf"
-    print("save", regular_out)
-    base.save(regular_out)
-    emoji_outs: list[Path] = []
-    for variant in EMOJI_VARIANTS:
-        emoji_out = DIST / variant["out_name"]
-        if emoji_variant_needs_rebuild(variant, emoji_out):
-            emoji_outs.append(build_emoji_variant(variant))
-        else:
-            print("reuse emoji", emoji_out.name)
-            emoji_outs.append(emoji_out)
-    print("coverage")
-    built = TTFont(regular_out)
-    violations = write_coverage(built, sources, emoji_outs)
-    write_preview(regular_out, emoji_outs)
-    for product_ttf in (regular_out, *emoji_outs):
-        write_woff2(product_ttf)
-    shutil.copyfile(ROOT / "OFL.txt", DIST / "OFL.txt")
-    if JBM_OFL.exists():
-        shutil.copyfile(JBM_OFL, DIST / "JetBrainsMono-OFL.txt")
-    if NOTO_EMOJI_OFL.exists():
-        shutil.copyfile(NOTO_EMOJI_OFL, DIST / "NotoEmoji-OFL.txt")
-    if FLUENT_MIT_MS.exists():
-        shutil.copyfile(FLUENT_MIT_MS, DIST / "FluentEmoji-MIT-Microsoft.txt")
-    if FLUENT_MIT_BUILD.exists():
-        shutil.copyfile(FLUENT_MIT_BUILD, DIST / "FluentEmoji-MIT-tetunori.txt")
-    print("width violations", len(violations))
-    a = built.getBestCmap()
-    h = built["hmtx"]
-    print("A", h[a[ord("A")]][0], "zhong", h[a[0x4E2D]][0], "box", h[a[0x2500]][0])
+    out = DIST / cut["out_name"]
+    print("save", out)
+    base.save(out)
+    base.close()
+    return out, sources, overlay
+
+
+def assert_mono_cut(font: TTFont, cut: dict) -> None:
+    """规范 §5 抽查，Regular 与 Light 同一套格子宽。"""
+    label = cut["style"]
+    if font["OS/2"].usWeightClass != cut["weight"]:
+        raise SystemExit(f"{label} usWeightClass 须为 {cut['weight']}")
+    name = font["name"]
+    family = name.getName(1, 3, 1, 0x409)
+    subfamily = name.getName(2, 3, 1, 0x409)
+    ps = name.getName(6, 3, 1, 0x409)
+    if family is None or family.toUnicode() != FAMILY_EN:
+        raise SystemExit(f"{label} 族名须为 {FAMILY_EN}")
+    if subfamily is None or subfamily.toUnicode() != label:
+        raise SystemExit(f"{label} 子族名须为 {label}")
+    if ps is None or ps.toUnicode() != cut["ps"]:
+        raise SystemExit(f"{label} PostScript 名须为 {cut['ps']}")
+    regular_bit = 1 << 6
+    has_regular = bool(int(font["OS/2"].fsSelection) & regular_bit)
+    if label == "Regular" and not has_regular:
+        raise SystemExit("Regular 的 fsSelection 须含 REGULAR 位")
+    if label != "Regular" and has_regular:
+        raise SystemExit(f"{label} 的 fsSelection 不得含 REGULAR 位")
+
+    a = font.getBestCmap()
+    h = font["hmtx"]
+    print(label, "A", h[a[ord("A")]][0], "zhong", h[a[0x4E2D]][0], "box", h[a[0x2500]][0])
+    if h[a[ord("A")]][0] != TARGET_UPEM // 2:
+        raise SystemExit(f"{label} 的 A 须为 0.5 em")
+    if h[a[0x4E2D]][0] != TARGET_UPEM:
+        raise SystemExit(f"{label} 的「中」须为 1 em")
     # §2 例外表抽查：① 推进 1 em 且轮廓来自思源（宽 ≥ 0.8 em，不是半格稿的 436）。
     # 注意：post 3.0 不存字形名，重读后名字会按 cmap 重建，不能用名字前缀判断。
     from fontTools.pens.boundsPen import BoundsPen
 
-    pen = BoundsPen(built.getGlyphSet())
-    built.getGlyphSet()[a[0x2460]].draw(pen)
+    pen = BoundsPen(font.getGlyphSet())
+    font.getGlyphSet()[a[0x2460]].draw(pen)
     circled_w = pen.bounds[2] - pen.bounds[0] if pen.bounds else 0
-    print("circled1", h[a[0x2460]][0], f"width={circled_w:.0f}", "warn", h[a[0x26A0]][0])
+    print(label, "circled1", h[a[0x2460]][0], f"width={circled_w:.0f}", "warn", h[a[0x26A0]][0])
     if h[a[0x2460]][0] != TARGET_UPEM or circled_w < TARGET_UPEM * 0.8:
-        raise SystemExit("U+2460 例外表未生效：推进或轮廓宽度不合格")
+        raise SystemExit(f"{label} U+2460 例外表未生效：推进或轮廓宽度不合格")
     if h[a[0x26A0]][0] != TARGET_UPEM:
-        raise SystemExit("U+26A0 思源覆盖后须为 1 em")
-    print("corp", h[a[0x337F]][0], "paatu", h[a[0x332C]][0])
+        raise SystemExit(f"{label} U+26A0 思源覆盖后须为 1 em")
+    print(label, "corp", h[a[0x337F]][0], "paatu", h[a[0x332C]][0])
     if 0x332C not in a:
-        raise SystemExit("U+332C ㌬ 须由 ㌪ / ㌫ 拆件合成")
+        raise SystemExit(f"{label} U+332C ㌬ 须由 ㌪ / ㌫ 拆件合成")
     if h[a[0x332C]][0] != TARGET_UPEM:
-        raise SystemExit("U+332C 须为 1 em")
+        raise SystemExit(f"{label} U+332C 须为 1 em")
 
     def _right_bar_height(cp: int) -> float | None:
-        g = built["glyf"][a[cp]]
-        coords, ends, _ = g.getCoordinates(built["glyf"])
+        g = font["glyf"][a[cp]]
+        coords, ends, _ = g.getCoordinates(font["glyf"])
         prev = 0
         best = None
         for end in ends:
@@ -2049,19 +2117,30 @@ def main() -> None:
     bar_src = _right_bar_height(0x332B)
     bar_dst = _right_bar_height(0x332C)
     if bar_src is None or bar_dst is None or abs(bar_dst - bar_src) > 2:
-        raise SystemExit(f"㌬ 横杠高度 {bar_dst} 应与 ㌫ {bar_src} 一致")
-    print("emdash", h[a[0x2014]][0], "emspace", h[a[0x2003]][0], "twoem", h[a[0x2E3A]][0], "threeem", h[a[0x2E3B]][0])
-    if 0x2705 not in a or 0x1F0CF not in a:
-        raise SystemExit("Regular 须保留 U+2705 与 U+1F0CF，不得剔除 EP")
-    if h[a[0x2705]][0] != TARGET_UPEM // 2:
-        raise SystemExit("U+2705 思源无此字，Regular 仍须 0.5 em")
-    if h[a[0x1F0CF]][0] != TARGET_UPEM // 2:
-        raise SystemExit("U+1F0CF 扑克不拉宽，Regular 须 0.5 em")
-    if 0x1F201 in a and h[a[0x1F201]][0] != TARGET_UPEM:
-        raise SystemExit("U+1F201 表意例外须为 1 em")
-    if 0x1F100 in a and h[a[0x1F100]][0] != TARGET_UPEM:
-        raise SystemExit("带圈字母数字补充须拉到 1 em")
+        raise SystemExit(f"{label} ㌬ 横杠高度 {bar_dst} 应与 ㌫ {bar_src} 一致")
     print(
+        label,
+        "emdash",
+        h[a[0x2014]][0],
+        "emspace",
+        h[a[0x2003]][0],
+        "twoem",
+        h[a[0x2E3A]][0],
+        "threeem",
+        h[a[0x2E3B]][0],
+    )
+    if 0x2705 not in a or 0x1F0CF not in a:
+        raise SystemExit(f"{label} 须保留 U+2705 与 U+1F0CF，不得剔除 EP")
+    if h[a[0x2705]][0] != TARGET_UPEM // 2:
+        raise SystemExit(f"{label} U+2705 思源无此字，仍须 0.5 em")
+    if h[a[0x1F0CF]][0] != TARGET_UPEM // 2:
+        raise SystemExit(f"{label} U+1F0CF 扑克不拉宽，须 0.5 em")
+    if 0x1F201 in a and h[a[0x1F201]][0] != TARGET_UPEM:
+        raise SystemExit(f"{label} U+1F201 表意例外须为 1 em")
+    if 0x1F100 in a and h[a[0x1F100]][0] != TARGET_UPEM:
+        raise SystemExit(f"{label} 带圈字母数字补充须拉到 1 em")
+    print(
+        label,
         "check-ep",
         h[a[0x2705]][0],
         "joker",
@@ -2071,18 +2150,102 @@ def main() -> None:
         "alnum-sup",
         h[a[0x1F100]][0] if 0x1F100 in a else None,
     )
-    woff_regular = TTFont(regular_out.with_suffix(".woff2"))
-    if woff_regular.flavor != "woff2":
-        raise SystemExit("Regular WOFF2 flavor 须为 woff2")
-    if woff_regular["hmtx"][woff_regular.getBestCmap()[ord("A")]][0] != TARGET_UPEM // 2:
-        raise SystemExit("WOFF2 与 TTF 推进须一致")
-    woff_regular.close()
+
+
+def main() -> None:
+    DIST.mkdir(parents=True, exist_ok=True)
+    built: list[tuple[dict, Path, dict[str, str], frozenset[int]]] = []
+    for cut in MONO_CUTS:
+        built.append((cut, *build_mono_cut(cut)))
+
+    emoji_outs: list[Path] = []
+    for variant in EMOJI_VARIANTS:
+        emoji_out = DIST / variant["out_name"]
+        if emoji_variant_needs_rebuild(variant, emoji_out):
+            emoji_outs.append(build_emoji_variant(variant))
+        else:
+            print("reuse emoji", emoji_out.name)
+            emoji_outs.append(emoji_out)
+
+    reports: list[dict] = []
+    for cut, path, _sources, overlay in built:
+        font = TTFont(path)
+        try:
+            violations = collect_width_violations(font, overlay)
+            mapped = len(font.getBestCmap())
+        finally:
+            font.close()
+        print(cut["style"], "width violations", len(violations), "mapped", mapped)
+        if violations:
+            raise SystemExit(f"{cut['style']} 宽度违规 {len(violations)}：{violations[:8]}")
+        reports.append(
+            {
+                "style": cut["style"],
+                "usWeightClass": cut["weight"],
+                "postScriptName": cut["ps"],
+                "mapped": mapped,
+                "widthViolationCount": len(violations),
+            }
+        )
+    if reports[0]["mapped"] != reports[1]["mapped"]:
+        raise SystemExit(
+            "Light 已映射数须与 Regular 相同："
+            f"{reports[1]['mapped']} != {reports[0]['mapped']}"
+        )
+
+    regular_cut, regular_out, regular_sources, regular_overlay = built[0]
+    print("coverage")
+    regular_font = TTFont(regular_out)
+    try:
+        write_coverage(
+            regular_font,
+            regular_sources,
+            regular_cut,
+            regular_overlay,
+            reports,
+            emoji_outs,
+        )
+        assert_mono_cut(regular_font, regular_cut)
+    finally:
+        regular_font.close()
+    write_preview(regular_out, emoji_outs)
+
+    for cut, path, _sources, _overlay in built[1:]:
+        font = TTFont(path)
+        try:
+            assert_mono_cut(font, cut)
+        finally:
+            font.close()
+
+    mono_outs = [path for _cut, path, _sources, _overlay in built]
+    for product_ttf in (*mono_outs, *emoji_outs):
+        write_woff2(product_ttf)
+    shutil.copyfile(ROOT / "OFL.txt", DIST / "OFL.txt")
+    if JBM_OFL.exists():
+        shutil.copyfile(JBM_OFL, DIST / "JetBrainsMono-OFL.txt")
+    if NOTO_EMOJI_OFL.exists():
+        shutil.copyfile(NOTO_EMOJI_OFL, DIST / "NotoEmoji-OFL.txt")
+    if FLUENT_MIT_MS.exists():
+        shutil.copyfile(FLUENT_MIT_MS, DIST / "FluentEmoji-MIT-Microsoft.txt")
+    if FLUENT_MIT_BUILD.exists():
+        shutil.copyfile(FLUENT_MIT_BUILD, DIST / "FluentEmoji-MIT-tetunori.txt")
+
+    for cut, path, _sources, _overlay in built:
+        woff = TTFont(path.with_suffix(".woff2"))
+        try:
+            if woff.flavor != "woff2":
+                raise SystemExit(f"{cut['style']} WOFF2 flavor 须为 woff2")
+            if woff["OS/2"].usWeightClass != cut["weight"]:
+                raise SystemExit(f"{cut['style']} WOFF2 字重须为 {cut['weight']}")
+            if woff["hmtx"][woff.getBestCmap()[ord("A")]][0] != TARGET_UPEM // 2:
+                raise SystemExit(f"{cut['style']} WOFF2 与 TTF 推进须一致")
+        finally:
+            woff.close()
+        print("done", path.name, "bytes", path.stat().st_size)
     for product_ttf in emoji_outs:
         woff_path = product_ttf.with_suffix(".woff2")
         if not woff_path.exists():
             raise SystemExit(f"缺少 {woff_path.name}")
-    print("done", regular_out, "bytes", regular_out.stat().st_size)
-    print("woff2", regular_out.with_suffix(".woff2").stat().st_size)
 
 
 if __name__ == "__main__":
