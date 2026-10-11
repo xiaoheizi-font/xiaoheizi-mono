@@ -223,6 +223,7 @@ error[E0425]: 找不到值 `foo`
       <thead>
         <tr>
           <th>字体</th>
+          <th>英文族名</th>
           <th>说明</th>
           <th>安装</th>
           <th>网页使用</th>
@@ -231,24 +232,28 @@ error[E0425]: 找不到值 `foo`
       <tbody>
         <tr>
           <td>小黑字等宽 Regular</td>
+          <td><code>Xiaoheizi Mono</code></td>
           <td>400</td>
           <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziMono-Regular.ttf">TTF</a></td>
           <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziMono-Regular.woff2">WOFF2</a></td>
         </tr>
         <tr>
           <td>小黑字等宽 Light</td>
+          <td><code>Xiaoheizi Mono</code></td>
           <td>300</td>
           <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziMono-Light.ttf">TTF</a></td>
           <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziMono-Light.woff2">WOFF2</a></td>
         </tr>
         <tr>
           <td>小黑字表情</td>
+          <td><code>Xiaoheizi Emoji</code></td>
           <td>谷歌 Noto 风格</td>
           <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziEmoji-Regular.ttf">TTF</a></td>
           <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziEmoji-Regular.woff2">WOFF2</a></td>
         </tr>
         <tr>
           <td>小黑字表情立体</td>
+          <td><code>Xiaoheizi Emoji 3D</code></td>
           <td>微软 Fluent 风格</td>
           <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziEmoji3D-Regular.ttf">TTF</a></td>
           <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziEmoji3D-Regular.woff2">WOFF2</a></td>
@@ -257,6 +262,12 @@ error[E0425]: 找不到值 `foo`
     </table>
 
     <p><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest">全部文件</a></p>
+
+    <h2>VS Code</h2>
+    <p><code>settings.json</code></p>
+    <pre class="config">{
+  "editor.fontFamily": "'Xiaoheizi Emoji 3D', 'Xiaoheizi Mono', Consolas, 'Courier New', monospace"
+}</pre>
 
     <h2>许可</h2>
     <p>字体和制作脚本按 <a href="./OFL.txt">SIL OFL 1.1</a> 发布。本仓库没有 <code>LICENSE</code> 文件，也不以 MIT 发布整仓。</p>
