@@ -1,3 +1,6 @@
+# Copyright (c) 2026 小黑字
+# SPDX-License-Identifier: MIT
+
 """把 JetBrains Mono NL 缩到半个汉字宽，覆盖到更纱 Fixed SC 的西文/盒绘上。"""
 
 from __future__ import annotations
@@ -2332,6 +2335,7 @@ def main() -> None:
     for product_ttf in (*mono_outs, *emoji_outs):
         write_woff2(product_ttf)
     shutil.copyfile(ROOT / "OFL.txt", DIST / "OFL.txt")
+    shutil.copyfile(ROOT / "LICENSE", DIST / "LICENSE")
     if JBM_OFL.exists():
         shutil.copyfile(JBM_OFL, DIST / "JetBrainsMono-OFL.txt")
     if NOTO_EMOJI_OFL.exists():

@@ -53,6 +53,7 @@ jobs:
           cp dist/XiaoheiziMono-Regular.woff2 dist/XiaoheiziMono-Light.woff2 dist/XiaoheiziEmoji-Regular.woff2 dist/XiaoheiziEmoji3D-Regular.woff2 dist/XiaoheiziNoEmoji.woff2 _site/
           cp dist/coverage.js dist/coverage-blocks.md _site/
           cp dist/OFL.txt dist/JetBrainsMono-OFL.txt dist/NotoEmoji-OFL.txt dist/FluentEmoji-MIT-Microsoft.txt dist/FluentEmoji-MIT-tetunori.txt _site/
+          cp LICENSE _site/LICENSE
 
       - uses: actions/upload-pages-artifact@v3
         with:

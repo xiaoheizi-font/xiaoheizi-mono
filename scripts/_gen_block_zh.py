@@ -1,3 +1,6 @@
+# Copyright (c) 2026 小黑字
+# SPDX-License-Identifier: MIT
+
 """一次性生成 unicode-block-zh.json。运行时不依赖本脚本。"""
 
 from __future__ import annotations

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 小黑字
+# SPDX-License-Identifier: MIT
+
 """下载构建所需的上游字体到 vendor/（不入库）。已存在则跳过。"""
 
 from __future__ import annotations

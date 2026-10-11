@@ -49,7 +49,7 @@ python scripts/build.py
 
 ## 许可
 
-字体和制作脚本按 [SIL OFL 1.1](./OFL.txt) 发布。本仓库没有 `LICENSE` 文件，也不以 MIT 发布整仓。
+字体按 [SIL OFL 1.1](./OFL.txt) 发布。制作脚本（`scripts/`）按 [MIT](./LICENSE) 开源。MIT 不覆盖字体。
 
 小黑字表情立体包含微软 Fluent 画作和 tetunori 的 TTF 合成。这两份 MIT 声明随字体一起提供，字体本身仍然只按 OFL 分发。
 
