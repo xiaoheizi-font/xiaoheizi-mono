@@ -47,9 +47,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site
-          cp dist/preview.html _site/index.html
+          cp dist/index.html _site/index.html
           cp dist/preview.html _site/preview.html
-          cp dist/XiaoheiziMono-Regular.woff2 dist/XiaoheiziMono-Light.woff2 dist/XiaoheiziEmoji-Regular.woff2 dist/XiaoheiziEmoji3D-Regular.woff2 _site/
+          cp dist/XiaoheiziMono-Regular.woff2 dist/XiaoheiziMono-Light.woff2 dist/XiaoheiziEmoji-Regular.woff2 dist/XiaoheiziEmoji3D-Regular.woff2 dist/XiaoheiziNoEmoji.woff2 _site/
           cp dist/coverage.js dist/coverage-blocks.md _site/
           cp dist/OFL.txt dist/JetBrainsMono-OFL.txt dist/NotoEmoji-OFL.txt dist/FluentEmoji-MIT-Microsoft.txt dist/FluentEmoji-MIT-tetunori.txt _site/
 
@@ -63,9 +63,11 @@ jobs:
           path: |
             dist/Xiaoheizi*.ttf
             dist/Xiaoheizi*.woff2
-            dist/*.txt
-            dist/coverage-*.json
-            dist/coverage-*.md
+            dist/OFL.txt
+            dist/JetBrainsMono-OFL.txt
+            dist/NotoEmoji-OFL.txt
+            dist/FluentEmoji-MIT-Microsoft.txt
+            dist/FluentEmoji-MIT-tetunori.txt
           if-no-files-found: error
 
   pages:
@@ -105,7 +107,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          TAG="v0.1.0-preview.${GITHUB_RUN_NUMBER}"
+          TAG="v0.1.0.${GITHUB_RUN_NUMBER}"
           git fetch --tags origin
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -116,8 +118,8 @@ jobs:
           git tag -a "$TAG" "$GITHUB_SHA" -m "小黑字等宽 ${TAG}"
           git push origin "refs/tags/${TAG}"
           shopt -s nullglob
-          files=(dist/Xiaoheizi*.ttf dist/Xiaoheizi*.woff2 dist/*.txt dist/coverage-*.json dist/coverage-*.md)
-          NOTES="由 main 提交 \`${GITHUB_SHA:0:7}\` 自动构建。字体按 SIL OFL 1.1 发布，见附件 \`OFL.txt\`。"$'\n\n'"- 小黑字等宽 \`Xiaoheizi Mono\` Regular（400）与 Light（300）"$'\n'"- 小黑字表情 \`Xiaoheizi Emoji\`（上游 Noto，族名不写厂商）"$'\n'"- 小黑字表情立体 \`Xiaoheizi Emoji 3D\`（上游 Fluent，族名不写厂商；附 MIT 声明，字体仍按 OFL 分发）"$'\n\n'"覆盖表见附件 \`coverage-blocks.md\`（按 Regular 统计）。预览页见 GitHub Pages。"
+          files=(dist/Xiaoheizi*.ttf dist/Xiaoheizi*.woff2 dist/OFL.txt dist/JetBrainsMono-OFL.txt dist/NotoEmoji-OFL.txt dist/FluentEmoji-MIT-Microsoft.txt dist/FluentEmoji-MIT-tetunori.txt)
+          NOTES="由 main 提交 \`${GITHUB_SHA:0:7}\` 自动构建。字体按 SIL OFL 1.1 发布，见附件 \`OFL.txt\`。"$'\n\n'"- 小黑字等宽 \`Xiaoheizi Mono\` Regular（400）与 Light（300）"$'\n'"- 小黑字表情 \`Xiaoheizi Emoji\`（谷歌 Noto 风格）"$'\n'"- 小黑字表情立体 \`Xiaoheizi Emoji 3D\`（微软 Fluent 风格；附 MIT 声明，字体仍按 OFL 分发）"$'\n\n'"字符测试页与覆盖表见 GitHub Pages，不在本 Release 里。"
           gh release create "$TAG" \
             --target "$GITHUB_SHA" \
             --title "小黑字等宽 ${TAG}" \

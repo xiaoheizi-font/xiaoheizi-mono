@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>小黑字</title>
+  <style>
+    @font-face {
+      font-family: "Xiaoheizi Mono";
+      src: url("./XiaoheiziMono-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Xiaoheizi Mono";
+      src: url("./XiaoheiziMono-Light.woff2") format("woff2");
+      font-weight: 300;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Xiaoheizi Emoji";
+      src: url("./XiaoheiziEmoji-Regular.woff2") format("woff2");
+      font-weight: 300 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Xiaoheizi Emoji 3D";
+      src: url("./XiaoheiziEmoji3D-Regular.woff2") format("woff2");
+      font-weight: 300 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Xiaoheizi NoEmoji";
+      src: url("./XiaoheiziNoEmoji.woff2") format("woff2");
+      font-weight: 300 400;
+      font-style: normal;
+      font-display: block;
+    }
+    body {
+      margin: 0;
+      background: #111;
+      color: #eee;
+      font-family: "Xiaoheizi Mono", "Xiaoheizi Emoji 3D", sans-serif;
+      font-weight: 400;
+      line-height: 1.45;
+    }
+    a { color: #8cbcff; }
+    main {
+      max-width: 64rem;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+    h1 {
+      margin: 0 0 0.4rem;
+      font-size: 2.4rem;
+      font-weight: 400;
+    }
+    h1 .mark {
+      font-family: "Xiaoheizi Emoji 3D", "Xiaoheizi Emoji", sans-serif;
+    }
+    .lead { margin: 0 0 1.6rem; max-width: 36rem; }
+    h2 {
+      margin: 2rem 0 0.7rem;
+      font-size: 1.15rem;
+      font-weight: 400;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 0.45rem 0.6rem;
+      text-align: left;
+      border-bottom: 1px solid #2a2a2a;
+      vertical-align: top;
+    }
+    th { color: #aaa; font-weight: 400; }
+    .try {
+      margin: 0 0 0.4rem;
+    }
+    .try-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      align-items: center;
+      margin: 0.6rem 0;
+    }
+    .accept-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+    .accept-filter button {
+      font: inherit;
+      background: #1c1c1c;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+    }
+    .accept-filter button[aria-pressed="true"] {
+      border-color: #5aa8ff;
+    }
+    #try-live {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      align-items: stretch;
+    }
+    textarea {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 16rem;
+      height: 100%;
+      margin: 0;
+      font-family: sans-serif;
+      font-size: 0.95rem;
+      font-weight: 400;
+      line-height: 1.25;
+      background: #1c1c1c;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 0.7rem 0.9rem;
+      resize: vertical;
+    }
+    #try-out {
+      font-family: "Xiaoheizi Mono", "Xiaoheizi NoEmoji", monospace;
+      font-weight: 400;
+      font-variant-emoji: text;
+      font-size: 1rem;
+      line-height: 1.2;
+      white-space: pre-wrap;
+      background: #1c1c1c;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin: 0;
+      min-height: 16rem;
+    }
+    #try-live.stack-3d #try-out {
+      font-family: "Xiaoheizi Emoji 3D", "Xiaoheizi Mono", sans-serif;
+      font-variant-emoji: normal;
+    }
+    #try-live.stack-flat #try-out {
+      font-family: "Xiaoheizi Emoji", "Xiaoheizi Mono", sans-serif;
+      font-variant-emoji: normal;
+    }
+    #try-live.weight-light #try-out { font-weight: 300; }
+    .donate {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.8rem;
+      margin: 0.6rem 0 0;
+    }
+    .donate figure { margin: 0; }
+    .donate img {
+      width: 100%;
+      max-width: 12rem;
+      background: #fff;
+      border-radius: 8px;
+    }
+    .donate figcaption { margin-top: 0.35rem; opacity: 0.7; font-size: 0.85rem; }
+    .nav a { margin-right: 1.2rem; }
+    .nav a.icon {
+      display: inline-flex;
+      color: #eee;
+      vertical-align: -0.2em;
+    }
+    .nav a.icon:hover { color: #8cbcff; }
+    .nav a.icon svg { width: 1.35rem; height: 1.35rem; display: block; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>小黑字 <span class="mark">🐓🏀</span></h1>
+    <p class="lead">中英等宽字体。西文来自 JetBrains Mono，汉字来自更纱黑体 / 思源黑体。另有两套与汉字同宽的彩色表情：谷歌 Noto 风格，以及微软 Fluent 风格。</p>
+
+    <div class="try">
+      <label for="try-input">试一试</label>
+      <div class="try-bar">
+        <div class="accept-filter" id="weight-switch" role="group" aria-label="字重">
+          <button type="button" data-weight="400" aria-pressed="true">Regular 400</button>
+          <button type="button" data-weight="300" aria-pressed="false">Light 300</button>
+        </div>
+        <div class="accept-filter" id="stack-switch" role="group" aria-label="表情叠加">
+          <button type="button" data-stack="mono" aria-pressed="true">无emoji叠加</button>
+          <button type="button" data-stack="3d" aria-pressed="false">叠加立体</button>
+          <button type="button" data-stack="flat" aria-pressed="false">叠加扁平</button>
+        </div>
+      </div>
+      <div id="try-live">
+        <textarea id="try-input">小黑字等宽 ABC 你好 🐓🏀
+
+┌────────┬────────┬────────┐
+│cmd     │状态    │code    │
+│ls -l   │完成    │0       │
+│git pull│拉取    │128     │
+│build   │运行    │ok      │
+└────────┴────────┴────────┘
+
+PID     NAME      STAT
+3001    监控      运行
+3002    shell     完成
+42      git       等待
+
+error[E0425]: 找不到值 `foo`
+ --> src/main.rs:8:5
+  |
+8 |     foo();
+  |     ^^^ 不在此作用域</textarea>
+        <pre id="try-out"></pre>
+      </div>
+    </div>
+
+    <h2>下载</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>字体</th>
+          <th>说明</th>
+          <th>安装</th>
+          <th>网页使用</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>小黑字等宽 Regular</td>
+          <td>400</td>
+          <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziMono-Regular.ttf">TTF</a></td>
+          <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziMono-Regular.woff2">WOFF2</a></td>
+        </tr>
+        <tr>
+          <td>小黑字等宽 Light</td>
+          <td>300</td>
+          <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziMono-Light.ttf">TTF</a></td>
+          <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziMono-Light.woff2">WOFF2</a></td>
+        </tr>
+        <tr>
+          <td>小黑字表情</td>
+          <td>谷歌 Noto 风格</td>
+          <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziEmoji-Regular.ttf">TTF</a></td>
+          <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziEmoji-Regular.woff2">WOFF2</a></td>
+        </tr>
+        <tr>
+          <td>小黑字表情立体</td>
+          <td>微软 Fluent 风格</td>
+          <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziEmoji3D-Regular.ttf">TTF</a></td>
+          <td><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest/download/XiaoheiziEmoji3D-Regular.woff2">WOFF2</a></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p><a href="https://github.com/xiaoheizi-font/xiaoheizi-mono/releases/latest">全部文件</a></p>
+
+    <h2>许可</h2>
+    <p>字体和制作脚本按 <a href="./OFL.txt">SIL OFL 1.1</a> 发布。本仓库没有 <code>LICENSE</code> 文件，也不以 MIT 发布整仓。</p>
+    <p>小黑字表情立体包含微软 Fluent 画作和 tetunori 的 TTF 合成。这两份 MIT 声明随字体一起提供，字体本身仍然只按 OFL 分发。</p>
+
+    <h2>捐赠</h2>
+    <p><strong>本人强烈谴责恶劣的A股市场环境</strong>：作者因买入股【华铁股份】现【R通达1】不完全统计<strong>家庭总计亏损高达200万人民币以上</strong>。目前正在起诉，进入二审阶段，执行更是不知要到什么时候了，能执行回来多少钱更不知道，这已经是第三、四年了，其余股票也亏损严重，现金流状况至今难以缓解。</p>
+    <p>故在此赛博要饭接受捐赠，谢谢。</p>
+    <div class="donate">
+      <figure>
+        <img src="https://cdn.jsdelivr.net/gh/gaoyia/gaoyia@v0.0.2/donate.jpg" alt="微信赞赏码" />
+        <figcaption>微信赞赏码</figcaption>
+      </figure>
+      <figure>
+        <img src="https://cdn.jsdelivr.net/gh/gaoyia/gaoyia@v0.0.2/zfbhb.jpg" alt="支付宝领红包" />
+        <figcaption>支付宝领红包</figcaption>
+      </figure>
+      <figure>
+        <img src="https://cdn.jsdelivr.net/gh/gaoyia/gaoyia@v0.0.2/zfb.jpg" alt="支付宝" />
+        <figcaption>支付宝</figcaption>
+      </figure>
+    </div>
+
+    <p class="nav">
+      <a class="icon" href="https://github.com/xiaoheizi-font/xiaoheizi-mono" aria-label="GitHub 仓库" title="GitHub 仓库">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <a href="./preview.html">字符测试</a>
+    </p>
+  </main>
+  <script>
+    (function () {
+      const input = document.getElementById("try-input");
+      const out = document.getElementById("try-out");
+      function paint() {
+        out.textContent = input.value;
+      }
+      input.addEventListener("input", paint);
+      paint();
+      function bind(root, attr, apply) {
+        root.querySelectorAll("[" + attr + "]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            root.querySelectorAll("[" + attr + "]").forEach(function (item) {
+              item.setAttribute("aria-pressed", item === btn ? "true" : "false");
+            });
+            apply(btn.getAttribute(attr));
+          });
+        });
+      }
+      const live = document.getElementById("try-live");
+      bind(document.getElementById("weight-switch"), "data-weight", function (weight) {
+        live.classList.toggle("weight-light", weight === "300");
+      });
+      bind(document.getElementById("stack-switch"), "data-stack", function (stack) {
+        live.classList.remove("stack-3d", "stack-flat");
+        if (stack === "3d") live.classList.add("stack-3d");
+        if (stack === "flat") live.classList.add("stack-flat");
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VENDOR = ROOT / "vendor"
 DIST = ROOT / "dist"
 PREVIEW_HTML = ROOT / "preview" / "preview.html"
+INDEX_HTML = ROOT / "site" / "index.html"
 BLOCK_ZH_PATH = Path(__file__).resolve().parent / "unicode-block-zh.json"
 
 JBM_OFL = VENDOR / "jetbrains-mono" / "OFL.txt"
@@ -172,6 +173,7 @@ PREFIX = "jbm."
 BMP_DENOM = 65535  # 规范 §4.2：BMP 习惯分母（U+0000–U+FFFF）
 FAMILY_EN = "Xiaoheizi Mono"
 FAMILY_ZH = "小黑字等宽"
+FONT_VERSION = "Version 0.1.0"
 TARGET_UPEM = 1000  # 等宽与配套表情同一 em；1 em = 2 格
 
 # 表情序列用到的零宽/组合码位，本身不是「一幅图」，但 cmap 里要留着才能拼 ZWJ / 键帽。
@@ -928,7 +930,7 @@ def set_emoji_names(font: TTFont, variant: dict) -> None:
         (2, "Regular"),
         (3, f"{family_en}:Regular"),
         (4, variant["full_en"]),
-        (5, "Version 0.1.0-preview"),
+        (5, FONT_VERSION),
         (6, variant["ps"]),
         (13, license_notice_for(variant)),
         (14, "https://openfontlicense.org"),
@@ -1448,6 +1450,9 @@ def emoji_variant_needs_rebuild(variant: dict, path: Path) -> bool:
             return True
         if lic is None or lic.toUnicode() != license_notice_for(variant):
             return True
+        ver = font["name"].getName(5, 3, 1, 0x409)
+        if ver is None or ver.toUnicode() != FONT_VERSION:
+            return True
         upem = font["head"].unitsPerEm
         cmap = font.getBestCmap()
         if upem != TARGET_UPEM:
@@ -1597,7 +1602,7 @@ def set_names(font: TTFont, cut: dict) -> None:
         (2, style),
         (3, f"Xiaoheizi Mono:{style}"),
         (4, cut["full_en"]),
-        (5, "Version 0.1.0-preview"),
+        (5, FONT_VERSION),
         (6, cut["ps"]),
         (13, OFL_LICENSE_NOTICE),
         (14, "https://openfontlicense.org"),
@@ -1935,7 +1940,7 @@ def write_coverage(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     lines = [
-        "# 小黑字等宽 · 字符覆盖（预览构建）",
+        "# 小黑字等宽 · 字符覆盖",
         "",
         f"- Unicode {summary['unicodeVersion']}（Python unicodedata）",
         f"- 全平面已映射 {mapped} / 已分配 {assigned} = {summary['mappedPercentOfAssigned']}%",
@@ -1983,6 +1988,52 @@ def build_glyph_catalog(cmap: dict[int, str]) -> tuple[dict, list[int]]:
     }, subset
 
 
+def write_no_emoji_fallback() -> None:
+    """首页「无emoji叠加」的空字形回落，占住 emoji 码位，避免系统彩色 emoji。"""
+    from fontTools.fontBuilder import FontBuilder
+    from fontTools.pens.ttGlyphPen import TTGlyphPen
+
+    ranges = (
+        (0x231A, 0x231B),
+        (0x23E9, 0x23FA),
+        (0x25AA, 0x25FE),
+        (0x2600, 0x27BF),
+        (0x2B00, 0x2BFF),
+        (0x1F000, 0x1FAFF),
+    )
+    cmap = {cp: "blank" for lo, hi in ranges for cp in range(lo, hi + 1)}
+    blank = TTGlyphPen(None).glyph()
+    notdef = TTGlyphPen(None).glyph()
+    fb = FontBuilder(1000, isTTF=True)
+    fb.setupGlyphOrder([".notdef", "blank"])
+    fb.setupCharacterMap(cmap)
+    fb.setupGlyf({".notdef": notdef, "blank": blank})
+    fb.setupHorizontalMetrics({".notdef": (0, 0), "blank": (0, 0)})
+    fb.setupHorizontalHeader(ascent=800, descent=-200)
+    fb.setupNameTable(
+        {
+            "familyName": "Xiaoheizi NoEmoji",
+            "styleName": "Regular",
+            "uniqueFontIdentifier": "Xiaoheizi NoEmoji",
+            "fullName": "Xiaoheizi NoEmoji",
+            "psName": "XiaoheiziNoEmoji",
+            "version": FONT_VERSION,
+        }
+    )
+    fb.setupOS2()
+    fb.setupPost()
+    buf = __import__("io").BytesIO()
+    fb.save(buf)
+    buf.seek(0)
+    font = TTFont(buf)
+    font.flavor = "woff2"
+    DIST.mkdir(parents=True, exist_ok=True)
+    out = DIST / "XiaoheiziNoEmoji.woff2"
+    font.save(out)
+    font.close()
+    print("no-emoji fallback", out.name, out.stat().st_size)
+
+
 def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     if not PREVIEW_HTML.exists():
         raise SystemExit(f"缺少预览模板：{PREVIEW_HTML}")
@@ -1990,6 +2041,10 @@ def write_preview(full_ttf: Path, emoji_ttfs: list[Path] | None = None) -> None:
     DIST.mkdir(parents=True, exist_ok=True)
     html = PREVIEW_HTML.read_text(encoding="utf-8")
     (DIST / "preview.html").write_text(html, encoding="utf-8")
+    if not INDEX_HTML.exists():
+        raise SystemExit(f"缺少首页模板：{INDEX_HTML}")
+    (DIST / "index.html").write_text(INDEX_HTML.read_text(encoding="utf-8"), encoding="utf-8")
+    write_no_emoji_fallback()
 
     tiny = TTFont(full_ttf)
     cmap = tiny.getBestCmap()
@@ -2097,6 +2152,9 @@ def assert_mono_cut(font: TTFont, cut: dict) -> None:
         raise SystemExit(f"{label} 子族名须为 {label}")
     if ps is None or ps.toUnicode() != cut["ps"]:
         raise SystemExit(f"{label} PostScript 名须为 {cut['ps']}")
+    ver = name.getName(5, 3, 1, 0x409)
+    if ver is None or ver.toUnicode() != FONT_VERSION:
+        raise SystemExit(f"{label} 版本须为 {FONT_VERSION}")
     copyright_name = name.getName(0, 3, 1, 0x409)
     license_name = name.getName(13, 3, 1, 0x409)
     if copyright_name is None or copyright_name.toUnicode() != ofl_copyright_notice():
@@ -2212,6 +2270,9 @@ def main() -> None:
                 raise SystemExit(f"{variant['family_en']} 版权声明须与 OFL.txt 一致")
             if lic is None or lic.toUnicode() != license_notice_for(variant):
                 raise SystemExit(f"{variant['family_en']} 许可证字段须指向 OFL.txt")
+            ver = font["name"].getName(5, 3, 1, 0x409)
+            if ver is None or ver.toUnicode() != FONT_VERSION:
+                raise SystemExit(f"{variant['family_en']} 版本须为 {FONT_VERSION}")
             if variant.get("flags_from_noto") and "only under the SIL Open Font License" not in lic.toUnicode():
                 raise SystemExit("立体套须写明只按 OFL 分发")
         finally:
